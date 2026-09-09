@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="美少兔驿站">
+<meta name="theme-color" content="#fff6fa">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="icon" href="img/icon-192.png">
+<title>美少兔驿站</title>
+<style>
+:root{
+  --card:#ffffff; --ink:#6a4c56; --ink2:#b193a0; --ink3:#d6bfc8;
+  --pink:#ffdde7; --mint:#c8e3e1; --lotus:#f5dbe1; --sky:#d8e8ff; --cream:#fff0cd;
+  --hot:#ff9cb8; --hot2:#ff85a8;
+  --sea:#7cc3bd; --sea2:#5fb0a9;
+  --grid:rgba(255,171,201,.22);
+  --r:26px;
+  --sh:0 5px 15px rgba(255,150,180,.18);
+  --sh2:0 8px 22px rgba(255,150,180,.24);
+  --shup:0 -3px 16px rgba(255,150,180,.13);
+}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  color:var(--ink);min-height:100vh;overflow-x:hidden;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 27px,var(--grid) 27px 29px),
+    repeating-linear-gradient(90deg,transparent 0 27px,var(--grid) 27px 29px),
+    linear-gradient(170deg,#fff6fa 0%,#fdf3ff 55%,#f4f6ff 100%);
+  background-attachment:fixed;
+  font-family:"Yuanti SC","YuanTi SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Maru Gothic ProN","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.6;
+  padding-bottom:calc(94px + env(safe-area-inset-bottom));
+  overscroll-behavior-y:none;
+}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer;padding:0}
+h1{margin:0;font-weight:700}
+.hide{display:none!important}
+::-webkit-scrollbar{display:none}
+
+/* ───── 顶栏 ───── */
+header{
+  position:sticky;top:0;z-index:20;
+  background:linear-gradient(180deg,rgba(255,246,250,.95) 60%,rgba(255,246,250,.7));
+  backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
+  padding:calc(env(safe-area-inset-top) + 12px) 18px 6px;
+}
+.hrow{display:flex;align-items:center;gap:10px;max-width:660px;margin:0 auto}
+.hcats{display:flex;flex:0 0 auto}
+.hcats img{width:38px;height:38px;border-radius:50%;border:2.5px solid #fff;background:#fff;box-shadow:0 2px 9px rgba(220,140,170,.3)}
+.hcats img:last-child{margin-left:-13px}
+.htxt{flex:1;min-width:0}
+.htxt h1{font-size:21px;letter-spacing:-.2px;line-height:1.25}
+.htxt .sub{font-size:12px;color:var(--ink2)}
+.hbtn{
+  flex:0 0 auto;width:42px;height:42px;border-radius:50%;background:#fff;
+  box-shadow:0 4px 13px rgba(255,150,180,.28);font-size:18px;line-height:42px;text-align:center;
+  transition:transform .15s;
+}
+.hbtn:active{transform:scale(.88)}
+
+.srch{max-width:660px;margin:0 auto;padding:8px 18px 0}
+.srch input{
+  width:100%;background:#fff;border:0;border-radius:20px;padding:10px 16px;outline:none;
+  box-shadow:0 2px 8px rgba(255,150,180,.14);font-size:14px;
+}
+.srch input:focus{box-shadow:0 0 0 2.5px var(--hot),0 4px 12px rgba(255,150,180,.22)}
+
+.filters{display:flex;gap:7px;overflow-x:auto;padding:9px 18px 5px;max-width:660px;margin:0 auto}
+.filters button{
+  flex:0 0 auto;padding:6px 14px;border-radius:20px;background:#fff;
+  font-size:13px;font-weight:600;color:var(--ink2);box-shadow:0 2px 8px rgba(255,150,180,.14);
+  transition:all .15s;
+}
+.filters button.on{background:var(--hot);color:#fff;box-shadow:0 4px 12px rgba(255,140,175,.4)}
+.filters.air button.on{background:var(--sea);box-shadow:0 4px 12px rgba(95,176,169,.4)}
+
+main{padding:8px 16px 0;max-width:660px;margin:0 auto}
+.sect{display:flex;align-items:baseline;gap:7px;margin:20px 0 10px}
+.sect .t{font-size:16px;font-weight:700}
+.sect .n{font-size:12px;color:var(--ink3)}
+.empty{text-align:center;color:var(--ink2);padding:44px 20px;font-size:14px;line-height:1.9}
+.empty .bigemo{font-size:64px;line-height:1.2;margin-bottom:6px}
+
+/* ───── 地点卡网格 ───── */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.place{
+  background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+  overflow:hidden;position:relative;cursor:pointer;transition:transform .14s;
+}
+.place:active{transform:scale(.965)}
+.place .pic{
+  aspect-ratio:4/3;background-size:cover;background-position:center;
+  display:flex;align-items:center;justify-content:center;font-size:42px;position:relative;
+}
+.k-hotel .pic{background-color:var(--lotus)}
+.k-airport .pic{background-color:var(--mint)}
+.mos{position:absolute;inset:0;display:grid;gap:2px}
+.mos i{display:block;background-size:cover;background-position:center;background-color:#fff4f8}
+.mos.m2{grid-template-columns:1fr 1fr}
+.mos.m3,.mos.m4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.mos.m3 i:first-child{grid-row:span 2}
+.place .bd{padding:9px 12px 12px}
+.place .nm{font-weight:700;font-size:14.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.place .mt{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.paws{font-size:11px;letter-spacing:-1.5px;margin-top:3px;height:17px}
+.badge{
+  position:absolute;top:8px;left:8px;background:#fff;border-radius:20px;
+  font-size:10.5px;font-weight:700;padding:2px 9px;box-shadow:0 2px 7px rgba(220,140,170,.24);
+}
+.badge.gym{background:var(--sea);color:#fff}
+.cnt{
+  position:absolute;top:7px;right:8px;background:rgba(255,255,255,.94);border-radius:20px;
+  font-size:10.5px;font-weight:700;padding:2px 8px;box-shadow:0 2px 7px rgba(220,140,170,.24);
+}
+
+/* ───── 流水时间轴 ───── */
+.daygrp{margin-bottom:6px}
+.dayhd{display:flex;align-items:center;gap:8px;margin:18px 0 9px;padding-left:2px}
+.dayhd .d1{font-size:15px;font-weight:700}
+.dayhd .d2{font-size:11.5px;color:var(--ink3);font-weight:600}
+.flow{
+  background:var(--card);border-radius:24px;padding:14px 16px;margin-bottom:11px;
+  box-shadow:var(--sh);cursor:pointer;position:relative;transition:transform .14s;
+  border-left:5px solid var(--lotus);
+}
+.flow.a{border-left-color:var(--mint)}
+.flow:active{transform:scale(.985)}
+.flow .fh{display:flex;align-items:baseline;gap:7px;margin-bottom:2px}
+.flow .fn{font-weight:700;font-size:15.5px;flex:1;min-width:0;word-break:break-word}
+.flow .fc{font-size:11.5px;color:var(--ink3);font-weight:600;flex:0 0 auto}
+.flow .fm{font-size:12px;color:var(--ink2);margin-bottom:6px}
+.flow .ft{white-space:pre-wrap;word-break:break-word;font-size:14.2px;line-height:1.65}
+.flow .fpics{display:flex;gap:6px;margin-top:9px;overflow-x:auto}
+.flow .fpics i{flex:0 0 auto;width:76px;height:76px;border-radius:14px;background-size:cover;background-position:center;background-color:#fff4f8;box-shadow:0 2px 8px rgba(255,150,180,.2)}
+.flow .fchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.flow .fchips span{background:#fff6f9;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;color:var(--ink2)}
+.flow.a .fchips span{background:#eef7f6}
+.flow .fpaw{font-size:12px;letter-spacing:-1.5px;margin-top:5px}
+
+/* ───── FAB / 底栏 ───── */
+.fab{
+  position:fixed;right:17px;bottom:calc(env(safe-area-inset-bottom) + 82px);z-index:31;
+  width:58px;height:58px;border-radius:50%;background:linear-gradient(160deg,#ffadc4,#ff8bab);
+  font-size:30px;line-height:56px;text-align:center;color:#fff;font-weight:700;
+  box-shadow:0 8px 20px rgba(255,130,170,.48);transition:transform .14s;
+}
+.fab:active{transform:scale(.9)}
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,252,254,.94);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shup);
+  padding:9px 0 calc(env(safe-area-inset-bottom) + 7px);display:flex;justify-content:space-around;
+}
+nav b{display:flex;flex-direction:column;align-items:center;gap:1px;font-weight:600;font-size:10.5px;color:var(--ink3);padding:2px 12px;position:relative;cursor:pointer}
+nav b i{font-size:20px;font-style:normal;filter:grayscale(1) opacity(.38);transition:filter .15s}
+nav b.on{color:var(--hot2);font-weight:700}
+nav b.on i{filter:none}
+
+/* ───── 弹层 ───── */
+.mask{position:fixed;inset:0;background:rgba(90,60,75,.36);z-index:40;opacity:0;pointer-events:none;transition:opacity .25s}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:41;
+  background:linear-gradient(175deg,#fff8fb 0%,#fdf5ff 60%,#f7f7ff 100%);
+  border-radius:30px 30px 0 0;max-height:93vh;display:flex;flex-direction:column;
+  box-shadow:0 -8px 30px rgba(200,130,165,.22);
+  transform:translateY(101%);transition:transform .32s cubic-bezier(.32,.72,0,1);
+}
+.sheet.on{transform:translateY(0)}
+.shead{padding:14px 18px 12px;display:flex;align-items:center;gap:10px}
+.shead .ti{flex:1;font-weight:700;font-size:17px;text-align:center}
+.shead button{font-size:14.5px;color:var(--ink2);min-width:46px;font-weight:600}
+.shead button.pri{color:var(--hot2);font-weight:700;text-align:right}
+.sbody{padding:6px 18px calc(env(safe-area-inset-bottom) + 30px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ───── 表单 ───── */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.seg button{padding:12px 4px;border-radius:18px;background:#fff;font-size:14px;font-weight:700;color:var(--ink2);box-shadow:0 2px 8px rgba(255,150,180,.13);transition:all .15s}
+.seg button.on[data-k=hotel]{background:var(--lotus);color:var(--ink);box-shadow:0 4px 13px rgba(255,150,180,.3)}
+.seg button.on[data-k=airport]{background:var(--mint);color:var(--ink);box-shadow:0 4px 13px rgba(95,176,169,.28)}
+.f{margin-bottom:13px}
+.f label{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:6px;font-weight:700;padding-left:4px}
+.f input,.f textarea,.f select{
+  width:100%;background:#fff;border:0;border-radius:18px;padding:12px 15px;outline:none;
+  box-shadow:0 2px 8px rgba(255,150,180,.13);transition:box-shadow .15s;
+}
+.f textarea{resize:none;min-height:96px;line-height:1.6}
+.f input:focus,.f textarea:focus,.f select:focus{box-shadow:0 0 0 2.5px var(--hot),0 4px 12px rgba(255,150,180,.22)}
+.f2{display:flex;gap:10px}.f2>.f{flex:1;min-width:0}
+.ac{position:relative}
+.aclist{position:absolute;left:0;right:0;top:100%;margin-top:5px;background:#fff;border-radius:18px;box-shadow:0 8px 22px rgba(200,130,165,.26);z-index:5;overflow:hidden;max-height:198px;overflow-y:auto}
+.aclist div{padding:11px 15px;font-size:14px;border-bottom:1px solid #fdeef3}
+.aclist div:last-child{border:0}
+.aclist div small{color:var(--ink3);font-size:11.5px;margin-left:6px}
+.pawpick{display:flex;gap:5px;align-items:center;background:#fff;border-radius:18px;padding:9px 13px;box-shadow:0 2px 8px rgba(255,150,180,.13)}
+.pawpick button{font-size:26px;line-height:1;filter:grayscale(1) opacity(.25);transition:all .14s}
+.pawpick button.on{filter:none;transform:scale(1.1)}
+.pawpick .z{font-size:12px;color:var(--ink3);margin-left:6px;font-weight:600}
+.tagpick{display:flex;flex-wrap:wrap;gap:7px}
+.tagpick button{padding:7px 13px;border-radius:20px;background:#fff;font-size:12.5px;font-weight:600;color:var(--ink2);box-shadow:0 2px 7px rgba(255,150,180,.13)}
+.tagpick button.on{background:var(--hot);color:#fff;box-shadow:0 3px 10px rgba(255,140,175,.34)}
+.tagpick.sea button.on{background:var(--sea);box-shadow:0 3px 10px rgba(95,176,169,.34)}
+.gymbox{background:#f2faf9;border-radius:22px;padding:13px 15px;margin-bottom:13px}
+.gymbox .gt{font-size:13px;font-weight:700;color:var(--sea2);margin-bottom:9px}
+.stg3{display:flex;gap:7px;margin-bottom:11px}
+.stg3 button{flex:1;padding:10px 4px;border-radius:16px;background:#fff;font-size:12.5px;font-weight:700;color:var(--ink2);box-shadow:0 2px 8px rgba(255,150,180,.13)}
+.stg3 button.on{background:var(--sea);color:#fff;box-shadow:0 4px 13px rgba(95,176,169,.34)}
+.picrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.picrow .pi{width:78px;height:78px;border-radius:18px;background-size:cover;background-position:center;position:relative;box-shadow:var(--sh)}
+.picrow .pi .x{position:absolute;top:-5px;right:-5px;background:#fff;color:var(--ink);width:24px;height:24px;border-radius:50%;font-size:13px;line-height:24px;text-align:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.picrow .add{width:78px;height:78px;border-radius:18px;background:#fff;box-shadow:var(--sh);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--ink3)}
+
+/* ───── 详情 ───── */
+.vhero{border-radius:26px;overflow:hidden;box-shadow:var(--sh2);margin-bottom:15px;aspect-ratio:16/10;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:64px}
+.vhero.h{background-color:var(--lotus)} .vhero.a{background-color:var(--mint)}
+.vh{display:flex;align-items:flex-start;gap:9px}
+.vh .n{font-size:22px;font-weight:700;flex:1;min-width:0;word-break:break-word;line-height:1.3}
+.vmeta{color:var(--ink2);font-size:13px;margin:4px 0 9px}
+.vpaws{font-size:19px;margin-bottom:13px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.tile{background:#fff;border-radius:20px;box-shadow:var(--sh);padding:13px 8px;text-align:center}
+.tile .v{font-size:21px;font-weight:700;line-height:1.25;color:var(--hot2)}
+.tile.s .v{color:var(--sea2)}
+.tile .l{font-size:11px;color:var(--ink2);font-weight:600}
+.blk{background:var(--card);border-radius:22px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--sh)}
+.blk .bl{font-size:12px;color:var(--ink2);font-weight:700;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{background:#fff6f9;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600}
+.chips.sea span{background:#eef7f6}
+.bigbtn{width:100%;padding:15px;border-radius:22px;font-size:15px;font-weight:700;margin-bottom:11px;background:#fff;box-shadow:var(--sh);transition:transform .14s}
+.bigbtn.pink{background:linear-gradient(160deg,#ffadc4,#ff8bab);color:#fff;box-shadow:0 6px 18px rgba(255,130,170,.42)}
+.bigbtn.sea{background:linear-gradient(160deg,#93d3cd,#63b3ac);color:#fff;box-shadow:0 6px 18px rgba(95,176,169,.4)}
+.bigbtn:active{transform:scale(.975)}
+.danger{width:100%;padding:12px;border-radius:18px;background:transparent;color:#dd8fa5;font-size:13.5px;font-weight:600;margin-top:8px}
+.rank{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1.5px dashed #f6dde6;font-size:14px}
+.rank:last-child{border:0;padding-bottom:0}
+.rank .rn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.rank .rv{color:var(--ink2);font-size:12.5px;flex:0 0 auto}
+.rank .ri{width:34px;height:34px;border-radius:12px;background-size:cover;background-position:center;background-color:var(--lotus);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:16px}
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 108px);transform:translateX(-50%) translateY(14px);
+  background:rgba(106,76,86,.94);color:#fff;padding:11px 20px;border-radius:22px;font-size:13.5px;font-weight:600;
+  z-index:60;opacity:0;pointer-events:none;transition:all .25s;max-width:80vw;text-align:center;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <div class="hcats"><img src="img/sansan-head.png" alt=""><img src="img/toshi-head.png" alt=""></div>
+    <div class="htxt"><h1>美少兔驿站</h1><div class="sub" id="hsub">路上歇脚的地方</div></div>
+    <button class="hbtn" id="btnSearch">🔍</button>
+  </div>
+  <div class="srch hide" id="srchBox"><input id="q" placeholder="搜城市、地名、或者你写过的字…"></div>
+  <div class="filters hide" id="filters"></div>
+</header>
+
+<main id="app"></main>
+
+<button class="fab" id="fab">＋</button>
+
+<nav>
+  <b data-tab="flow" class="on"><i>📖</i>流水</b>
+  <b data-tab="hotel"><i>🏨</i>住过的</b>
+  <b data-tab="airport"><i>✈️</i>机场</b>
+  <b data-tab="bag"><i>🧳</i>行囊</b>
+</nav>
+
+<div class="mask" id="mask"></div>
+
+<!-- 记一条 -->
+<div class="sheet" id="shEdit">
+  <div class="shead">
+    <button data-close>取消</button>
+    <div class="ti" id="edTi">记一条</div>
+    <button class="pri" id="edSave">存好</button>
+  </div>
+  <div class="sbody">
+    <div class="seg">
+      <button data-k="hotel" class="on">🏨 住了一晚</button>
+      <button data-k="airport">✈️ 路过机场</button>
+    </div>
+
+    <div class="f ac">
+      <label id="lbName">酒店叫什么</label>
+      <input id="edName" placeholder="打几个字就行，住过的会自动跳出来" autocomplete="off">
+      <div class="aclist hide" id="acName"></div>
+    </div>
+
+    <div class="f2">
+      <div class="f ac">
+        <label>城市</label>
+        <input id="edCity" placeholder="上海" autocomplete="off">
+        <div class="aclist hide" id="acCity"></div>
+      </div>
+      <div class="f"><label>日期</label><input id="edAt" type="date"></div>
+    </div>
+
+    <div class="f2" id="rowHotel">
+      <div class="f"><label>住了几晚</label><input id="edNights" type="number" inputmode="numeric" placeholder="1"></div>
+      <div class="f"><label>一晚多少钱</label><input id="edPrice" type="number" inputmode="decimal" placeholder="不想记就空着"></div>
+    </div>
+
+    <div class="f2 hide" id="rowAir">
+      <div class="f"><label>航站楼</label><input id="edTerm" placeholder="T2"></div>
+      <div class="f"><label>去哪 / 从哪</label><input id="edRoute" placeholder="飞成都"></div>
+    </div>
+
+    <div class="f">
+      <label>这次怎么样</label>
+      <div class="pawpick" id="edPaw">
+        <button data-p="1">🐾</button><button data-p="2">🐾</button><button data-p="3">🐾</button>
+        <button data-p="4">🐾</button><button data-p="5">🐾</button>
+        <span class="z" id="edPawZ">还没打</span>
+      </div>
+    </div>
+
+    <div class="gymbox hide" id="gymBox">
+      <div class="gt">💪 健身房</div>
+      <div class="stg3" id="gymHas">
+        <button data-g="yes">有，去了</button><button data-g="no">没有</button><button data-g="skip" class="on">没去看</button>
+      </div>
+      <div id="gymDetail" class="hide">
+        <div class="f"><label>有什么器材</label><div class="tagpick sea" id="gymGear"></div></div>
+        <div class="f2">
+          <div class="f"><label>开放时间</label><input id="gymHours" placeholder="24h / 6:00-22:00"></div>
+          <div class="f"><label>多大 / 怎么样</label><input id="gymNote" placeholder="小但够用"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="f"><label id="lbTags">标签</label><div class="tagpick" id="edTags"></div></div>
+
+    <div class="f">
+      <label>这次的流水账 ✍️</label>
+      <textarea id="edText" placeholder="想到什么写什么，不用工整。&#10;比如：房间靠马路，凌晨三点被垃圾车吵醒了…"></textarea>
+    </div>
+
+    <label style="display:block;font-size:12.5px;color:var(--ink2);margin-bottom:6px;font-weight:700;padding-left:4px">照片</label>
+    <div class="picrow" id="edPics">
+      <label class="add" for="edFile">＋</label>
+      <input type="file" id="edFile" accept="image/*" multiple class="hide">
+    </div>
+
+    <button class="danger hide" id="edDel">删掉这一条</button>
+  </div>
+</div>
+
+<!-- 地点档案 -->
+<div class="sheet" id="shView">
+  <div class="shead">
+    <button data-close>关闭</button>
+    <div class="ti" id="vwTi">档案</div>
+    <button class="pri" id="vwAdd">＋记一条</button>
+  </div>
+  <div class="sbody" id="vwBody"></div>
+</div>
+
+<!-- 看图 -->
+<div class="sheet" id="shPic">
+  <div class="shead"><button data-close>关闭</button><div class="ti">照片</div><button style="min-width:46px"></button></div>
+  <div class="sbody" id="picBody" style="padding-bottom:40px"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════ 存储 ══════════════ */
+const K='yz.stays.v1', KS='yz.set.v1';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const ld=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}};
+const uid=()=>'y'+Math.random().toString(36).slice(2,9);
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const paw=n=>n?'🐾'.repeat(n):'';
+
+/* 第一次打开就是空的 —— 不塞示范数据 */
+let stays=ld(K,null);
+if(stays===null){stays=[];sv(K,stays)}
+stays.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[]; if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''}; if(!Array.isArray(s.gym.gear))s.gym.gear=[]; });
+let stg=ld(KS,{});
+
+const persist=()=>{
+  const ok=sv(K,stays);
+  if(!ok)toast('⚠️ 存不下了！去行囊里导出备份看看');
+  return ok;
+};
+const usedKB=()=>{try{return Math.round(((localStorage.getItem(K)||'').length)/1024)}catch{return 0}};
+
+/* ══ 照片库：放 IndexedDB，localStorage 里只留 id ══ */
+let _db=null;
+const idb=()=>new Promise((res,rej)=>{
+  if(_db)return res(_db);
+  const r=indexedDB.open('meishaotu-yizhan',1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('pics'))r.result.createObjectStore('pics')};
+  r.onsuccess=()=>{_db=r.result;res(_db)};
+  r.onerror=()=>rej(r.error);
+});
+const picPut=(id,blob)=>idb().then(db=>new Promise((res,rej)=>{
+  const t=db.transaction('pics','readwrite');t.objectStore('pics').put(blob,id);
+  t.oncomplete=()=>res(id);t.onerror=()=>rej(t.error);
+}));
+const picGetRaw=id=>idb().then(db=>new Promise((res,rej)=>{
+  const r=db.transaction('pics','readonly').objectStore('pics').get(id);
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+}));
+const picDel=id=>idb().then(db=>new Promise((res)=>{
+  const t=db.transaction('pics','readwrite');t.objectStore('pics').delete(id);
+  t.oncomplete=()=>res();t.onerror=()=>res();
+}));
+
+/* 内存里缓存 objectURL，渲染时同步拿得到 */
+const PICURL={};
+async function warmPics(){
+  const ids=[...new Set(stays.flatMap(s=>s.pics||[]))].filter(id=>!PICURL[id]);
+  for(const id of ids){
+    try{ const b=await picGetRaw(id); if(b) PICURL[id]=(typeof b==='string')?b:URL.createObjectURL(b); }catch{}
+  }
+}
+const purl=id=>PICURL[id]||'';
+
+/* 存照片：压到 1400px / jpeg，转 blob 塞 IndexedDB */
+function fileToPicId(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=()=>{
+      const im=new Image();
+      im.onload=()=>{
+        const M=1400, sc=Math.min(1,M/Math.max(im.width,im.height));
+        const c=document.createElement('canvas');
+        c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc);
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        c.toBlob(async b=>{
+          if(!b)return res(null);
+          const id='p'+Math.random().toString(36).slice(2,10);
+          try{ await picPut(id,b); PICURL[id]=URL.createObjectURL(b); res(id) }catch{ res(null) }
+        },'image/jpeg',.72);
+      };
+      im.onerror=()=>res(null);
+      im.src=r.result;
+    };
+    r.onerror=()=>res(null);
+    r.readAsDataURL(file);
+  });
+}
+
+/* ══════════════ 词表 ══════════════ */
+const HOTEL_TAGS=['🤫 安静','🔊 隔音差','🛏️ 床舒服','🚿 水压好','🍳 早餐好','📍 位置好','🚇 离地铁近','💰 性价比高','🧼 干净','🐛 不干净','🌇 view 好','🔌 插座够','⚠️ 避雷'];
+const AIR_TAGS=['🛋️ 休息室好','😴 能睡','🍜 吃的多','🛍️ 免税好','🔄 转机顺','🐌 安检慢','🚇 到市区方便','🔌 充电方便','⏰ 延误了','🧭 好找路','😵 太大了走断腿'];
+const GYM_GEAR=['🏃 跑步机','🚴 单车','🏋️ 力量器械','💪 哑铃','🧘 瑜伽垫','🏊 泳池','🧖 桑拿','🤸 空间大'];
+
+/* ══════════════ 归堆：从流水长出地点档案 ══════════════ */
+const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,'').replace(/酒店$|饭店$|宾馆$/,'');
+const pkey=s=>s.kind+'|'+norm(s.place);
+
+function places(kind){
+  const m=new Map();
+  stays.filter(s=>s.kind===kind&&s.place).forEach(s=>{
+    const k=pkey(s);
+    if(!m.has(k))m.set(k,{key:k,kind,name:s.place,city:s.city||'',items:[]});
+    const p=m.get(k);
+    p.items.push(s);
+    if(s.city)p.city=s.city;
+    if((s.place||'').length>p.name.length)p.name=s.place;   /* 留最完整的写法 */
+  });
+  return [...m.values()].map(p=>{
+    p.items.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+    const rated=p.items.filter(x=>x.paw>0);
+    p.paw = rated.length ? Math.round(rated.reduce((n,x)=>n+x.paw,0)/rated.length) : 0;
+    p.last = p.items[0].at||'';
+    p.n = p.items.length;
+    p.pics = p.items.flatMap(x=>x.pics||[]).slice(0,4);
+    p.tags = [...new Set(p.items.flatMap(x=>x.tags||[]))];
+    p.gym = p.items.find(x=>x.gym&&x.gym.has==='yes')?.gym || null;
+    p.nogym = !p.gym && p.items.some(x=>x.gym&&x.gym.has==='no');
+    const pr=p.items.map(x=>+x.price).filter(x=>x>0);
+    p.avg = pr.length ? Math.round(pr.reduce((a,b)=>a+b,0)/pr.length) : 0;
+    p.nights = p.items.reduce((n,x)=>n+(+x.nights||1),0);
+    return p;
+  }).sort((a,b)=>(b.last||'').localeCompare(a.last||''));
+}
+
+const dfmt=d=>{ if(!d)return ''; const [y,m,dd]=d.split('-'); return `${+m}月${+dd}日`; };
+const dfull=d=>{ if(!d)return ''; const [y,m,dd]=d.split('-'); return `${y}年${+m}月${+dd}日`; };
+const WD=['周日','周一','周二','周三','周四','周五','周六'];
+const wd=d=>{ try{return WD[new Date(d+'T12:00:00').getDay()]}catch{return ''} };
+const mosaic=ids=>{
+  const a=(ids||[]).filter(purl).slice(0,4);
+  if(!a.length)return '';
+  return `<div class="mos m${a.length}">${a.map(i=>`<i style="background-image:url('${purl(i)}')"></i>`).join('')}</div>`;
+};
+
+/* ══════════════ 渲染 ══════════════ */
+let TAB='flow', FILT='', Q='';
+const SUBS={flow:'想到什么写什么',hotel:'住过的地方',airport:'路过的机场',bag:'家当和备份'};
+
+function hit(s){
+  if(!Q)return true;
+  const q=Q.toLowerCase();
+  return [s.place,s.city,s.text,s.terminal,s.route,(s.tags||[]).join(''),s.gym&&s.gym.note].
+    filter(Boolean).some(x=>String(x).toLowerCase().includes(q));
+}
+
+function renderFlow(){
+  const list=stays.filter(hit).slice().sort((a,b)=>(b.at||'').localeCompare(a.at||'')||(b.id>a.id?1:-1));
+  if(!list.length) return `<div class="empty"><div class="bigemo">🧳</div>
+    ${Q?'没找着，换个词试试':'还没记过东西<br>点右下角的 ＋ 写第一条'}</div>`;
+  let out='', cur='';
+  list.forEach(s=>{
+    if(s.at!==cur){ cur=s.at; out+=`<div class="dayhd"><span class="d1">${dfull(s.at)}</span><span class="d2">${wd(s.at)}</span></div>`; }
+    out+=flowCard(s);
+  });
+  return out;
+}
+
+function flowCard(s){
+  const air=s.kind==='airport';
+  const meta=[];
+  if(s.city)meta.push(esc(s.city));
+  if(air){ if(s.terminal)meta.push(esc(s.terminal)); if(s.route)meta.push(esc(s.route)); }
+  else { if(+s.nights>1)meta.push(s.nights+'晚'); if(+s.price>0)meta.push('¥'+s.price+'/晚'); }
+  if(!air&&s.gym&&s.gym.has==='yes')meta.push('💪 练了');
+  const pics=(s.pics||[]).filter(purl);
+  return `<div class="flow ${air?'a':''}" data-edit="${s.id}">
+    <div class="fh"><div class="fn">${air?'✈️':'🏨'} ${esc(s.place||'（没写名字）')}</div></div>
+    ${meta.length?`<div class="fm">${meta.join(' · ')}</div>`:''}
+    ${s.text?`<div class="ft">${esc(s.text)}</div>`:''}
+    ${pics.length?`<div class="fpics">${pics.map(i=>`<i style="background-image:url('${purl(i)}')" data-pic="${i}"></i>`).join('')}</div>`:''}
+    ${(s.tags||[]).length?`<div class="fchips">${s.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
+    ${s.paw?`<div class="fpaw">${paw(s.paw)}</div>`:''}
+  </div>`;
+}
+
+function renderPlaces(kind){
+  let ps=places(kind);
+  if(Q) ps=ps.filter(p=>p.items.some(hit)||norm(p.name).includes(norm(Q))||norm(p.city).includes(norm(Q)));
+  if(FILT==='__gym__') ps=ps.filter(p=>p.gym);
+  else if(FILT==='__good__') ps=ps.filter(p=>p.paw>=4);
+  else if(FILT==='__again__') ps=ps.filter(p=>p.n>1);
+  else if(FILT) ps=ps.filter(p=>p.city===FILT);
+  if(!ps.length) return `<div class="empty"><div class="bigemo">${kind==='hotel'?'🏨':'✈️'}</div>
+    ${Q||FILT?'这个条件下没有':(kind==='hotel'?'还没记过住的地方':'还没记过机场')}</div>`;
+  return `<div class="grid">${ps.map(p=>placeCard(p)).join('')}</div>`;
+}
+
+function placeCard(p){
+  const air=p.kind==='airport';
+  const mos=mosaic(p.pics);
+  const bits=[];
+  if(p.city)bits.push(esc(p.city));
+  bits.push('最近 '+dfmt(p.last));
+  return `<div class="place k-${p.kind}" data-place="${esc(p.key)}">
+    <div class="pic">${mos||(air?'✈️':'🏨')}
+      ${p.n>1?`<div class="cnt">第 ${p.n} 次</div>`:''}
+      ${p.gym?`<div class="badge gym">💪 有</div>`:''}
+      ${!air&&!p.gym&&p.nogym?`<div class="badge">没健身房</div>`:''}
+    </div>
+    <div class="bd">
+      <div class="nm">${esc(p.name)}</div>
+      <div class="mt">${bits.join(' · ')}</div>
+      <div class="paws">${paw(p.paw)}</div>
+    </div>
+  </div>`;
+}
+
+function renderBag(){
+  const H=places('hotel'), A=places('airport');
+  const nights=stays.filter(s=>s.kind==='hotel').reduce((n,s)=>n+(+s.nights||1),0);
+  const cities=[...new Set(stays.map(s=>s.city).filter(Boolean))];
+  const gymN=stays.filter(s=>s.gym&&s.gym.has==='yes').length;
+  const pr=stays.filter(s=>s.kind==='hotel').map(s=>+s.price).filter(x=>x>0);
+  const avg=pr.length?Math.round(pr.reduce((a,b)=>a+b,0)/pr.length):0;
+  const rep=H.filter(p=>p.n>1).sort((a,b)=>b.n-a.n).slice(0,5);
+  const best=H.filter(p=>p.paw>=4).sort((a,b)=>b.paw-a.paw||b.n-a.n).slice(0,5);
+  const airT=A.sort((a,b)=>b.n-a.n).slice(0,5);
+  return `
+  <div class="empty" style="padding:14px 0 4px">
+    <div class="bigemo">🧳</div>
+    <div style="font-size:18px;font-weight:700;color:var(--ink)">七七七的行囊</div>
+    <div style="font-size:12.5px">${stays.length?`已经记了 ${stays.length} 条`:'还空着'}</div>
+  </div>
+  <div class="tiles">
+    <div class="tile"><div class="v">${H.length}</div><div class="l">住过的酒店</div></div>
+    <div class="tile"><div class="v">${nights}</div><div class="l">总共几晚</div></div>
+    <div class="tile s"><div class="v">${A.length}</div><div class="l">去过的机场</div></div>
+    <div class="tile"><div class="v">${cities.length}</div><div class="l">城市</div></div>
+    <div class="tile s"><div class="v">${gymN}</div><div class="l">练过几次</div></div>
+    <div class="tile"><div class="v">${avg?'¥'+avg:'—'}</div><div class="l">房价均值</div></div>
+  </div>
+  ${rep.length?`<div class="blk"><div class="bl">🔁 回头住过的</div>${rep.map(p=>
+    `<div class="rank" data-place="${esc(p.key)}"><div class="ri" style="${p.pics[0]?`background-image:url('${purl(p.pics[0])}')`:''}">${p.pics[0]?'':'🏨'}</div>
+     <div class="rn">${esc(p.name)}</div><div class="rv">${p.n} 次</div></div>`).join('')}</div>`:''}
+  ${best.length?`<div class="blk"><div class="bl">💖 还想再住的</div>${best.map(p=>
+    `<div class="rank" data-place="${esc(p.key)}"><div class="ri" style="${p.pics[0]?`background-image:url('${purl(p.pics[0])}')`:''}">${p.pics[0]?'':'🏨'}</div>
+     <div class="rn">${esc(p.name)}</div><div class="rv">${paw(p.paw)}</div></div>`).join('')}</div>`:''}
+  ${airT.length?`<div class="blk"><div class="bl">✈️ 最常路过</div>${airT.map(p=>
+    `<div class="rank" data-place="${esc(p.key)}"><div class="ri" style="background-color:var(--mint);${p.pics[0]?`background-image:url('${purl(p.pics[0])}')`:''}">${p.pics[0]?'':'✈️'}</div>
+     <div class="rn">${esc(p.name)}</div><div class="rv">${p.n} 次</div></div>`).join('')}</div>`:''}
+  ${cities.length?`<div class="blk"><div class="bl">🗺️ 去过的城市</div><div class="chips">${cities.map(c=>`<span>${esc(c)}</span>`).join('')}</div></div>`:''}
+  <div style="height:8px"></div>
+  <button class="bigbtn" id="bExport">📦 导出一份备份</button>
+  <label class="bigbtn" for="bFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
+  <input type="file" id="bFile" accept=".json,application/json" class="hide">
+  <div style="text-align:center;font-size:11.5px;color:var(--ink3);padding:6px 0 2px;line-height:1.8">
+    数据只存在这台手机的浏览器里，换地址就不跟着走了<br>
+    文字占用 ${usedKB()} KB · 照片另存在相册库里<br>
+    美少兔驿站 · ${BUILD}
+  </div>
+  <button class="danger" id="bWipe">清空所有记录</button>
+  `;
+}
+
+/* ══ 地点档案详情 ══ */
+let VIEWKEY='';
+function openPlace(key){
+  const kind=key.split('|')[0];
+  const p=places(kind).find(x=>x.key===key);
+  if(!p)return;
+  VIEWKEY=key;
+  const air=p.kind==='airport';
+  $('#vwTi').textContent = air?'机场档案':'酒店档案';
+  const cover=p.pics.filter(purl)[0];
+  const gearAll=[...new Set(p.items.filter(x=>x.gym&&x.gym.has==='yes').flatMap(x=>x.gym.gear||[]))];
+  const gymNote=p.items.filter(x=>x.gym&&x.gym.has==='yes').map(x=>x.gym.note).filter(Boolean);
+  const gymHours=p.items.filter(x=>x.gym&&x.gym.has==='yes').map(x=>x.gym.hours).filter(Boolean);
+  const pr=p.items.map(x=>+x.price).filter(x=>x>0);
+
+  $('#vwBody').innerHTML=`
+  <div class="vhero ${air?'a':'h'}" style="${cover?`background-image:url('${purl(cover)}')`:''}">${cover?'':(air?'✈️':'🏨')}</div>
+  <div class="vh"><div class="n">${esc(p.name)}</div></div>
+  <div class="vmeta">${[p.city&&esc(p.city), `去过 ${p.n} 次`, p.last&&('最近 '+dfull(p.last))].filter(Boolean).join(' · ')}</div>
+  ${p.paw?`<div class="vpaws">${paw(p.paw)}</div>`:''}
+  <div class="tiles">
+    <div class="tile"><div class="v">${p.n}</div><div class="l">${air?'路过':'住过'}几次</div></div>
+    ${air?`<div class="tile s"><div class="v">${[...new Set(p.items.map(x=>x.terminal).filter(Boolean))].length||'—'}</div><div class="l">用过的航站楼</div></div>`
+        :`<div class="tile"><div class="v">${p.nights}</div><div class="l">总共几晚</div></div>`}
+    ${air?`<div class="tile"><div class="v">${p.items.filter(x=>x.pics&&x.pics.length).length||'—'}</div><div class="l">有照片的</div></div>`
+        :`<div class="tile s"><div class="v">${pr.length?'¥'+Math.round(pr.reduce((a,b)=>a+b,0)/pr.length):'—'}</div><div class="l">房价均值</div></div>`}
+  </div>
+  ${!air&&p.gym?`<div class="blk" style="background:#f2faf9">
+    <div class="bl" style="color:var(--sea2)">💪 健身房</div>
+    ${gearAll.length?`<div class="chips sea" style="margin-bottom:${gymHours.length||gymNote.length?'8px':'0'}">${gearAll.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
+    ${gymHours.length?`<div style="font-size:13.5px">🕐 ${esc([...new Set(gymHours)].join(' / '))}</div>`:''}
+    ${gymNote.length?`<div style="font-size:13.5px">${esc([...new Set(gymNote)].join('；'))}</div>`:''}
+  </div>`:''}
+  ${!air&&!p.gym&&p.nogym?`<div class="blk"><div class="bl">💪 健身房</div><div style="font-size:14px;color:var(--ink2)">没有</div></div>`:''}
+  ${p.tags.length?`<div class="blk"><div class="bl">🔖 你标过的</div><div class="chips ${air?'sea':''}">${p.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div></div>`:''}
+  <div class="sect"><span class="t">📖 每次的流水</span><span class="n">${p.n} 条</span></div>
+  ${p.items.map(s=>`<div class="dayhd"><span class="d1">${dfull(s.at)}</span><span class="d2">${wd(s.at)}</span></div>${flowCard(s)}`).join('')}
+  <div style="height:10px"></div>
+  <button class="bigbtn ${air?'sea':'pink'}" data-newat="${esc(p.name)}|${esc(p.city)}|${p.kind}">＋ 再记一条${air?'路过':'入住'}</button>
+  `;
+  open1($('#shView'));
+}
+
+/* ══ 主调度 ══ */
+function filterBar(){
+  const box=$('#filters');
+  if(TAB==='flow'||TAB==='bag'){box.classList.add('hide');return}
+  box.classList.remove('hide');
+  box.classList.toggle('air',TAB==='airport');
+  const ps=places(TAB);
+  const cities=[...new Set(ps.map(p=>p.city).filter(Boolean))];
+  const sp=[{k:'',n:'全部'}];
+  if(TAB==='hotel'){ sp.push({k:'__gym__',n:'💪 有健身房'}); }
+  sp.push({k:'__good__',n:'💖 还想再来'},{k:'__again__',n:'🔁 去过多次'});
+  box.innerHTML=[...sp,...cities.map(c=>({k:c,n:c}))]
+    .map(o=>`<button data-f="${esc(o.k)}" class="${FILT===o.k?'on':''}">${esc(o.n)}</button>`).join('');
+}
+
+function render(){
+  $('#hsub').textContent=SUBS[TAB];
+  $$('nav b').forEach(b=>b.classList.toggle('on',b.dataset.tab===TAB));
+  $('#fab').classList.toggle('hide',TAB==='bag');
+  filterBar();
+  const app=$('#app');
+  if(TAB==='flow')app.innerHTML=renderFlow();
+  else if(TAB==='bag')app.innerHTML=renderBag();
+  else app.innerHTML=renderPlaces(TAB);
+}
+
+/* ══════════════ 弹层控制 ══════════════ */
+const open1=el=>{$('#mask').classList.add('on');el.classList.add('on')};
+const closeOne=el=>{el.classList.remove('on');if(!$$('.sheet.on').length)$('#mask').classList.remove('on')};
+const closeAll=()=>{$$('.sheet').forEach(s=>s.classList.remove('on'));$('#mask').classList.remove('on')};
+let _tt;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),2100)}
+$('#mask').onclick=closeAll;
+$$('[data-close]').forEach(b=>b.onclick=()=>closeOne(b.closest('.sheet')));
+
+/* ══════════════ 记一条 ══════════════ */
+let ED=null;
+
+function blankEntry(kind){
+  return {id:uid(),kind:kind||'hotel',place:'',city:'',at:today(),nights:'',price:'',
+          terminal:'',route:'',paw:0,tags:[],text:'',pics:[],
+          gym:{has:'skip',gear:[],hours:'',note:''}};
+}
+
+function openEdit(entry,isNew){
+  ED=JSON.parse(JSON.stringify(entry));
+  if(!ED.gym)ED.gym={has:'skip',gear:[],hours:'',note:''};
+  $('#edTi').textContent=isNew?'记一条':'改一改';
+  $('#edDel').classList.toggle('hide',!!isNew);
+  syncKind();
+  $('#edName').value=ED.place||''; $('#edCity').value=ED.city||'';
+  $('#edAt').value=ED.at||today();
+  $('#edNights').value=ED.nights||''; $('#edPrice').value=ED.price||'';
+  $('#edTerm').value=ED.terminal||''; $('#edRoute').value=ED.route||'';
+  $('#gymHours').value=ED.gym.hours||''; $('#gymNote').value=ED.gym.note||'';
+  $('#edText').value=ED.text||'';
+  drawPaw(); drawTags(); drawGym(); drawPics();
+  $('#shEdit').querySelector('.sbody').scrollTop=0;
+  open1($('#shEdit'));
+}
+
+function syncKind(){
+  const air=ED.kind==='airport';
+  $$('#shEdit .seg button').forEach(b=>b.classList.toggle('on',b.dataset.k===ED.kind));
+  $('#lbName').textContent=air?'哪个机场':'酒店叫什么';
+  $('#edName').placeholder=air?'虹桥 T2 / 白云机场':'打几个字就行，住过的会自动跳出来';
+  $('#rowHotel').classList.toggle('hide',air);
+  $('#rowAir').classList.toggle('hide',!air);
+  $('#gymBox').classList.toggle('hide',air);
+  $('#lbTags').textContent=air?'这个机场怎么样':'这次住得怎么样';
+}
+
+function drawPaw(){
+  $$('#edPaw button').forEach(b=>b.classList.toggle('on',+b.dataset.p<=(ED.paw||0)));
+  $('#edPawZ').textContent=['还没打','算了吧','一般','还行','挺好','超爱'][ED.paw||0];
+}
+function drawTags(){
+  const list=ED.kind==='airport'?AIR_TAGS:HOTEL_TAGS;
+  const box=$('#edTags'); box.classList.toggle('sea',ED.kind==='airport');
+  box.innerHTML=list.map(t=>`<button data-t="${esc(t)}" class="${(ED.tags||[]).includes(t)?'on':''}">${esc(t)}</button>`).join('');
+}
+function drawGym(){
+  $$('#gymHas button').forEach(b=>b.classList.toggle('on',b.dataset.g===ED.gym.has));
+  $('#gymDetail').classList.toggle('hide',ED.gym.has!=='yes');
+  $('#gymGear').innerHTML=GYM_GEAR.map(t=>`<button data-g2="${esc(t)}" class="${(ED.gym.gear||[]).includes(t)?'on':''}">${esc(t)}</button>`).join('');
+}
+function drawPics(){
+  const row=$('#edPics');
+  row.querySelectorAll('.pi').forEach(e=>e.remove());
+  const add=row.querySelector('.add');
+  (ED.pics||[]).forEach(id=>{
+    const d=document.createElement('div');
+    d.className='pi'; d.style.backgroundImage=`url('${purl(id)}')`;
+    d.innerHTML=`<div class="x" data-rmpic="${id}">✕</div>`;
+    row.insertBefore(d,add);
+  });
+}
+
+/* 自动补全：从她已经写过的名字里找 */
+function acSetup(inputSel,listSel,getPool){
+  const inp=$(inputSel), box=$(listSel);
+  const hideL=()=>box.classList.add('hide');
+  inp.addEventListener('input',()=>{
+    const v=inp.value.trim();
+    if(!v){hideL();return}
+    const seen=new Map();
+    getPool().forEach(o=>{ if(!seen.has(o.v)&&norm(o.v).includes(norm(v)))seen.set(o.v,o) });
+    const r=[...seen.values()].slice(0,6);
+    if(!r.length){hideL();return}
+    box.innerHTML=r.map(o=>`<div data-pick="${esc(o.v)}" data-city="${esc(o.c||'')}">${esc(o.v)}${o.c?`<small>${esc(o.c)}</small>`:''}</div>`).join('');
+    box.classList.remove('hide');
+  });
+  inp.addEventListener('blur',()=>setTimeout(hideL,180));
+  box.addEventListener('mousedown',e=>{
+    const d=e.target.closest('[data-pick]'); if(!d)return;
+    e.preventDefault(); inp.value=d.dataset.pick;
+    if(inputSel==='#edName'&&d.dataset.city&&!$('#edCity').value)$('#edCity').value=d.dataset.city;
+    hideL();
+  });
+}
+acSetup('#edName','#acName',()=>stays.filter(s=>s.kind===ED.kind&&s.place).map(s=>({v:s.place,c:s.city})));
+acSetup('#edCity','#acCity',()=>stays.filter(s=>s.city).map(s=>({v:s.city})));
+
+/* ── 表单交互 ── */
+$('#shEdit').addEventListener('click',async e=>{
+  const seg=e.target.closest('.seg button');
+  if(seg){ ED.kind=seg.dataset.k; ED.tags=[]; syncKind(); drawTags(); return }
+  const pb=e.target.closest('#edPaw button');
+  if(pb){ const v=+pb.dataset.p; ED.paw=(ED.paw===v)?0:v; drawPaw(); return }
+  const tb=e.target.closest('#edTags button');
+  if(tb){ const t=tb.dataset.t; ED.tags=(ED.tags||[]).includes(t)?ED.tags.filter(x=>x!==t):[...(ED.tags||[]),t]; drawTags(); return }
+  const gh=e.target.closest('#gymHas button');
+  if(gh){ ED.gym.has=gh.dataset.g; drawGym(); return }
+  const gg=e.target.closest('#gymGear button');
+  if(gg){ const t=gg.dataset.g2; ED.gym.gear=(ED.gym.gear||[]).includes(t)?ED.gym.gear.filter(x=>x!==t):[...(ED.gym.gear||[]),t]; drawGym(); return }
+  const rm=e.target.closest('[data-rmpic]');
+  if(rm){ const id=rm.dataset.rmpic; ED.pics=ED.pics.filter(x=>x!==id); drawPics(); return }
+});
+
+$('#edFile').addEventListener('change',async e=>{
+  const fs=[...e.target.files]; e.target.value='';
+  if(!fs.length)return;
+  toast('照片处理中…📷');
+  for(const f of fs){ const id=await fileToPicId(f); if(id)ED.pics.push(id) }
+  drawPics(); toast('加好了 ✨');
+});
+
+$('#edSave').onclick=()=>{
+  ED.place=$('#edName').value.trim();
+  ED.city=$('#edCity').value.trim();
+  ED.at=$('#edAt').value||today();
+  ED.nights=$('#edNights').value; ED.price=$('#edPrice').value;
+  ED.terminal=$('#edTerm').value.trim(); ED.route=$('#edRoute').value.trim();
+  ED.gym.hours=$('#gymHours').value.trim(); ED.gym.note=$('#gymNote').value.trim();
+  ED.text=$('#edText').value;
+  if(!ED.place&&!ED.text.trim()){ toast('好歹写个名字，或者写两句 (´･_･`)'); return }
+  const i=stays.findIndex(s=>s.id===ED.id);
+  if(i>=0)stays[i]=ED; else stays.push(ED);
+  persist(); closeAll(); render();
+  if(VIEWKEY&&$('#shView'))VIEWKEY='';
+  toast('记下了 🐣');
+};
+
+$('#edDel').onclick=()=>{
+  if(!confirm('删掉这一条？照片也会一起没'))return;
+  (ED.pics||[]).forEach(id=>picDel(id));
+  stays=stays.filter(s=>s.id!==ED.id);
+  persist(); closeAll(); render(); toast('删掉了');
+};
+
+/* ── 全局点击 ── */
+document.addEventListener('click',e=>{
+  const nb=e.target.closest('nav b');
+  if(nb){ TAB=nb.dataset.tab; FILT=''; render(); window.scrollTo(0,0); return }
+  const fb=e.target.closest('#filters button');
+  if(fb){ FILT=(FILT===fb.dataset.f)?'':fb.dataset.f; render(); return }
+  const pk=e.target.closest('[data-pic]');
+  if(pk){ e.stopPropagation();
+    $('#picBody').innerHTML=`<img src="${purl(pk.dataset.pic)}" style="width:100%;border-radius:22px;box-shadow:var(--sh2)">`;
+    open1($('#shPic')); return }
+  const pl=e.target.closest('[data-place]');
+  if(pl){ openPlace(pl.dataset.place); return }
+  const ed=e.target.closest('[data-edit]');
+  if(ed){ const s=stays.find(x=>x.id===ed.dataset.edit); if(s)openEdit(s,false); return }
+  const na=e.target.closest('[data-newat]');
+  if(na){ const [nm,ci,kd]=na.dataset.newat.split('|');
+    const b=blankEntry(kd); b.place=nm; b.city=ci; closeOne($('#shView')); setTimeout(()=>openEdit(b,true),260); return }
+});
+
+$('#fab').onclick=()=>openEdit(blankEntry(TAB==='airport'?'airport':'hotel'),true);
+
+$('#btnSearch').onclick=()=>{
+  const b=$('#srchBox'); b.classList.toggle('hide');
+  if(!b.classList.contains('hide'))$('#q').focus();
+  else{ Q=''; $('#q').value=''; render() }
+};
+let _qt;
+$('#q').addEventListener('input',e=>{ clearTimeout(_qt); _qt=setTimeout(()=>{Q=e.target.value.trim();render()},180) });
+
+/* ── 备份 ── */
+document.addEventListener('click',async e=>{
+  if(e.target.closest('#bExport')){
+    toast('打包中，照片多的话要等几秒…📦');
+    const picIds=[...new Set(stays.flatMap(s=>s.pics||[]))];
+    const picsOut={};
+    for(const id of picIds){
+      try{ const b=await picGetRaw(id); if(!b)continue;
+        picsOut[id]=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)});
+      }catch{}
+    }
+    const blob=new Blob([JSON.stringify({app:'yizhan',v:1,at:new Date().toISOString(),stays,pics:picsOut})],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='美少兔驿站-备份-'+today()+'.json';
+    a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast('导出好了 ✨');
+  }
+  if(e.target.closest('#bWipe')){
+    if(!confirm('清空所有记录？导出过备份吗？'))return;
+    if(!confirm('真的？没法撤销的哦 (´･_･`)'))return;
+    stays=[]; sv(K,[]); render(); toast('清空了');
+  }
+});
+document.addEventListener('change',e=>{
+  if(e.target.id!=='bFile')return;
+  const f=e.target.files[0]; e.target.value=''; if(!f)return;
+  const r=new FileReader();
+  r.onload=async()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!Array.isArray(d.stays))throw 0;
+      if(!confirm(`这份备份里有 ${d.stays.length} 条记录，导入会覆盖现在的。继续？`))return;
+      toast('恢复中…');
+      for(const [id,dataURL] of Object.entries(d.pics||{})){
+        try{ const b=await (await fetch(dataURL)).blob(); await picPut(id,b); PICURL[id]=URL.createObjectURL(b) }catch{}
+      }
+      stays=d.stays;
+      stays.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[]; if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''} });
+      persist(); render(); toast('恢复好了 🎉');
+    }catch{ toast('这个文件读不了，换一份试试 😅') }
+  };
+  r.readAsText(f);
+});
+
+/* ── 启动 ── */
+const BUILD='0909';
+(async()=>{ await warmPics(); render(); })();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
