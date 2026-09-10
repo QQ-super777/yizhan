@@ -137,6 +137,7 @@ main{padding:8px 16px 0;max-width:660px;margin:0 auto}
 .flow .ft{white-space:pre-wrap;word-break:break-word;font-size:14.2px;line-height:1.65}
 .flow .fpics{display:flex;gap:6px;margin-top:9px;overflow-x:auto}
 .flow .fpics i{flex:0 0 auto;width:76px;height:76px;border-radius:14px;background-size:cover;background-position:center;background-color:#fff4f8;box-shadow:0 2px 8px rgba(255,150,180,.2)}
+.zcap{font-size:11px;font-weight:700;color:var(--ink3);margin-top:9px;padding-left:2px}
 .flow .fchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .flow .fchips span{background:#fff6f9;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;color:var(--ink2)}
 .flow.a .fchips span{background:#eef7f6}
@@ -209,6 +210,9 @@ nav b.on i{filter:none}
 .stg3{display:flex;gap:7px;margin-bottom:11px}
 .stg3 button{flex:1;padding:10px 4px;border-radius:16px;background:#fff;font-size:12.5px;font-weight:700;color:var(--ink2);box-shadow:0 2px 8px rgba(255,150,180,.13)}
 .stg3 button.on{background:var(--sea);color:#fff;box-shadow:0 4px 13px rgba(95,176,169,.34)}
+.zrow{margin-bottom:12px}
+.zrow .zl{font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px;padding-left:4px}
+.zrow.gym .zl{color:var(--sea2)}
 .picrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .picrow .pi{width:78px;height:78px;border-radius:18px;background-size:cover;background-position:center;position:relative;box-shadow:var(--sh)}
 .picrow .pi .x{position:absolute;top:-5px;right:-5px;background:#fff;color:var(--ink);width:24px;height:24px;border-radius:50%;font-size:13px;line-height:24px;text-align:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.2)}
@@ -348,10 +352,8 @@ nav b.on i{filter:none}
     </div>
 
     <label style="display:block;font-size:12.5px;color:var(--ink2);margin-bottom:6px;font-weight:700;padding-left:4px">照片</label>
-    <div class="picrow" id="edPics">
-      <label class="add" for="edFile">＋</label>
-      <input type="file" id="edFile" accept="image/*" multiple class="hide">
-    </div>
+    <div id="edPicZones"></div>
+    <input type="file" id="edFile" accept="image/*" multiple class="hide">
 
     <button class="danger hide" id="edDel">删掉这一条</button>
   </div>
@@ -412,7 +414,7 @@ const isWX=()=>/MicroMessenger/i.test(navigator.userAgent||'');
 /* 第一次打开就是空的 —— 不塞示范数据 */
 let stays=ld(K,null);
 if(stays===null){stays=[];sv(K,stays)}
-stays.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[]; if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''}; if(!Array.isArray(s.gym.gear))s.gym.gear=[]; });
+stays.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[]; if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''}; if(!Array.isArray(s.gym.gear))s.gym.gear=[]; if(!s.picz||typeof s.picz!=='object')s.picz={}; });
 let stg=ld(KS,{});
 
 const persist=()=>{
@@ -482,6 +484,14 @@ function fileToPicId(file){
 /* ══════════════ 词表 ══════════════ */
 const HOTEL_TAGS=['🤫 安静','🔊 隔音差','🛏️ 床舒服','🚿 水压好','🍳 早餐好','📍 位置好','🚇 离地铁近','💰 性价比高','🧼 干净','🐛 不干净','🌇 view 好','🔌 插座够','⚠️ 避雷'];
 const AIR_TAGS=['🛋️ 休息室好','😴 能睡','🍜 吃的多','🛍️ 免税好','🔄 转机顺','🐌 安检慢','🚇 到市区方便','🔌 充电方便','⏰ 延误了','🧭 好找路','😵 太大了走断腿'];
+/* 照片分区 —— 目前三档,酒店专用;机场的照片不分区 */
+const ZONES=[{k:'room',n:'🛏️ 房间'},{k:'lobby',n:'🛋️ 大堂'},{k:'gym',n:'💪 健身房'}];
+const ZN=k=>(ZONES.find(z=>z.k===k)||{n:'📷 其他'}).n;
+/* 老数据没有分区 —— 归到「其他」,不动它 */
+const zoneOf=(s,id)=>(s.picz&&s.picz[id])||'';
+const picsIn=(s,k)=>(s.pics||[]).filter(id=>zoneOf(s,id)===k);
+const picsUnzoned=s=>(s.pics||[]).filter(id=>!ZONES.some(z=>z.k===zoneOf(s,id)));
+
 const GYM_GEAR=['🏃 跑步机','🚴 单车','🏋️ 力量器械','💪 哑铃','🧘 瑜伽垫','🏊 泳池','🧖 桑拿','🤸 空间大'];
 
 /* ══════════════ 归堆：从流水长出地点档案 ══════════════ */
@@ -504,7 +514,9 @@ function places(kind){
     p.paw = rated.length ? Math.round(rated.reduce((n,x)=>n+x.paw,0)/rated.length) : 0;
     p.last = p.items[0].at||'';
     p.n = p.items.length;
-    p.pics = p.items.flatMap(x=>x.pics||[]).slice(0,4);
+    /* 封面优先房间 → 大堂 → 健身房 → 其他 */
+    p.pics = [...p.items.flatMap(x=>picsIn(x,'room')), ...p.items.flatMap(x=>picsIn(x,'lobby')),
+              ...p.items.flatMap(x=>picsIn(x,'gym')), ...p.items.flatMap(x=>picsUnzoned(x))].slice(0,4);
     p.tags = [...new Set(p.items.flatMap(x=>x.tags||[]))];
     p.gym = p.items.find(x=>x.gym&&x.gym.has==='yes')?.gym || null;
     p.nogym = !p.gym && p.items.some(x=>x.gym&&x.gym.has==='no');
@@ -548,6 +560,20 @@ function renderFlow(){
   return out;
 }
 
+/* 照片按分区摊开,每组一个小标签;没分区的就一排 */
+function picBlocks(s){
+  const row=ids=>`<div class="fpics">${ids.map(i=>`<i style="background-image:url('${purl(i)}')" data-pic="${i}"></i>`).join('')}</div>`;
+  const rest=picsUnzoned(s).filter(purl);
+  if(s.kind==='airport')return rest.length?row(rest):'';
+  let out='';
+  ZONES.forEach(z=>{
+    const ids=picsIn(s,z.k).filter(purl);
+    if(ids.length)out+=`<div class="zcap">${z.n}</div>`+row(ids);
+  });
+  if(rest.length)out+=row(rest);
+  return out;
+}
+
 function flowCard(s){
   const air=s.kind==='airport';
   const meta=[];
@@ -560,7 +586,7 @@ function flowCard(s){
     <div class="fh"><div class="fn">${air?'✈️':'🏨'} ${esc(s.place||'（没写名字）')}</div></div>
     ${meta.length?`<div class="fm">${meta.join(' · ')}</div>`:''}
     ${s.text?`<div class="ft">${esc(s.text)}</div>`:''}
-    ${pics.length?`<div class="fpics">${pics.map(i=>`<i style="background-image:url('${purl(i)}')" data-pic="${i}"></i>`).join('')}</div>`:''}
+    ${picBlocks(s)}
     ${(s.tags||[]).length?`<div class="fchips">${s.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
     ${s.paw?`<div class="fpaw">${paw(s.paw)}</div>`:''}
   </div>`;
@@ -654,6 +680,26 @@ function renderBag(){
   `;
 }
 
+/* 把这个地方历次的照片按分区并起来 —— 「这家的健身房长啥样」一眼扫完 */
+function album(p){
+  if(p.kind==='airport'){
+    const all=p.items.flatMap(s=>(s.pics||[])).filter(purl);
+    return all.length?`<div class="blk"><div class="bl">📷 照片 <span style="color:var(--ink3)">${all.length} 张</span></div>
+      <div class="fpics">${all.map(i=>`<i style="background-image:url('${purl(i)}')" data-pic="${i}"></i>`).join('')}</div></div>`:'';
+  }
+  let out='';
+  ZONES.forEach(z=>{
+    const ids=p.items.flatMap(s=>picsIn(s,z.k)).filter(purl);
+    if(!ids.length)return;
+    out+=`<div class="blk"><div class="bl">${z.n} <span style="color:var(--ink3)">${ids.length} 张</span></div>
+      <div class="fpics">${ids.map(i=>`<i style="background-image:url('${purl(i)}')" data-pic="${i}"></i>`).join('')}</div></div>`;
+  });
+  const rest=p.items.flatMap(s=>picsUnzoned(s)).filter(purl);
+  if(rest.length)out+=`<div class="blk"><div class="bl">📷 其他 <span style="color:var(--ink3)">${rest.length} 张</span></div>
+      <div class="fpics">${rest.map(i=>`<i style="background-image:url('${purl(i)}')" data-pic="${i}"></i>`).join('')}</div></div>`;
+  return out;
+}
+
 /* ══ 地点档案详情 ══ */
 let VIEWKEY='';
 function openPlace(key){
@@ -689,6 +735,7 @@ function openPlace(key){
   </div>`:''}
   ${!air&&!p.gym&&p.nogym?`<div class="blk"><div class="bl">💪 健身房</div><div style="font-size:14px;color:var(--ink2)">没有</div></div>`:''}
   ${p.tags.length?`<div class="blk"><div class="bl">🔖 你标过的</div><div class="chips ${air?'sea':''}">${p.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div></div>`:''}
+  ${album(p)}
   <div class="sect"><span class="t">📖 每次的流水</span><span class="n">${p.n} 条</span></div>
   ${p.items.map(s=>`<div class="dayhd"><span class="d1">${dfull(s.at)}</span><span class="d2">${wd(s.at)}</span></div>${flowCard(s)}`).join('')}
   <div style="height:10px"></div>
@@ -750,13 +797,14 @@ let ED=null;
 
 function blankEntry(kind){
   return {id:uid(),kind:kind||'hotel',place:'',city:'',at:today(),nights:'',price:'',
-          terminal:'',route:'',paw:0,tags:[],text:'',pics:[],
+          terminal:'',route:'',paw:0,tags:[],text:'',pics:[],picz:{},
           gym:{has:'skip',gear:[],hours:'',note:''}};
 }
 
 function openEdit(entry,isNew){
   ED=JSON.parse(JSON.stringify(entry)); ISNEW=!!isNew;
   if(!ED.gym)ED.gym={has:'skip',gear:[],hours:'',note:''};
+  if(!ED.picz)ED.picz={};
   $('#edTi').textContent=isNew?'记一条':'改一改';
   $('#edDel').classList.toggle('hide',!!isNew);
   syncKind();
@@ -796,16 +844,27 @@ function drawGym(){
   $('#gymDetail').classList.toggle('hide',ED.gym.has!=='yes');
   $('#gymGear').innerHTML=GYM_GEAR.map(t=>`<button data-g2="${esc(t)}" class="${(ED.gym.gear||[]).includes(t)?'on':''}">${esc(t)}</button>`).join('');
 }
+/* 点哪个分区的 ＋,照片就进哪个分区 */
+let ADDZONE='';
 function drawPics(){
-  const row=$('#edPics');
-  row.querySelectorAll('.pi').forEach(e=>e.remove());
-  const add=row.querySelector('.add');
-  (ED.pics||[]).forEach(id=>{
-    const d=document.createElement('div');
-    d.className='pi'; d.style.backgroundImage=`url('${purl(id)}')`;
-    d.innerHTML=`<div class="x" data-rmpic="${id}">✕</div>`;
-    row.insertBefore(d,add);
-  });
+  const air=ED.kind==='airport';
+  const thumb=id=>`<div class="pi" style="background-image:url('${purl(id)}')"><div class="x" data-rmpic="${id}">✕</div></div>`;
+  const plus=k=>`<button class="add" data-addz="${k}">＋</button>`;
+  let html='';
+  if(air){
+    /* 机场不分区,就一排 */
+    html=`<div class="zrow"><div class="picrow">${(ED.pics||[]).map(thumb).join('')}${plus('')}</div></div>`;
+  }else{
+    html=ZONES.map(z=>{
+      const ids=(ED.pics||[]).filter(id=>(ED.picz||{})[id]===z.k);
+      return `<div class="zrow ${z.k}"><div class="zl">${z.n}</div>
+        <div class="picrow">${ids.map(thumb).join('')}${plus(z.k)}</div></div>`;
+    }).join('');
+    const rest=(ED.pics||[]).filter(id=>!ZONES.some(z=>z.k===(ED.picz||{})[id]));
+    if(rest.length)html+=`<div class="zrow"><div class="zl">📷 其他（还没分区）</div>
+      <div class="picrow">${rest.map(thumb).join('')}</div></div>`;
+  }
+  $('#edPicZones').innerHTML=html;
 }
 
 /* 自动补全：从她已经写过的名字里找 */
@@ -836,7 +895,7 @@ acSetup('#edCity','#acCity',()=>stays.filter(s=>s.city).map(s=>({v:s.city})));
 /* ── 表单交互 ── */
 $('#shEdit').addEventListener('click',async e=>{
   const seg=e.target.closest('.seg button');
-  if(seg){ ED.kind=seg.dataset.k; ED.tags=[]; syncKind(); drawTags(); return }
+  if(seg){ ED.kind=seg.dataset.k; ED.tags=[]; syncKind(); drawTags(); drawPics(); return }
   const pb=e.target.closest('#edPaw button');
   if(pb){ const v=+pb.dataset.p; ED.paw=(ED.paw===v)?0:v; drawPaw(); return }
   const tb=e.target.closest('#edTags button');
@@ -846,15 +905,19 @@ $('#shEdit').addEventListener('click',async e=>{
   const gg=e.target.closest('#gymGear button');
   if(gg){ const t=gg.dataset.g2; ED.gym.gear=(ED.gym.gear||[]).includes(t)?ED.gym.gear.filter(x=>x!==t):[...(ED.gym.gear||[]),t]; drawGym(); return }
   const rm=e.target.closest('[data-rmpic]');
-  if(rm){ const id=rm.dataset.rmpic; ED.pics=ED.pics.filter(x=>x!==id); drawPics(); return }
+  if(rm){ const id=rm.dataset.rmpic; ED.pics=ED.pics.filter(x=>x!==id);
+          if(ED.picz)delete ED.picz[id]; drawPics(); saveDraft(); return }
+  const az=e.target.closest('[data-addz]');
+  if(az){ ADDZONE=az.dataset.addz; $('#edFile').click(); return }
 });
 
 $('#edFile').addEventListener('change',async e=>{
   const fs=[...e.target.files]; e.target.value='';
   if(!fs.length)return;
   toast('照片处理中…📷');
-  for(const f of fs){ const id=await fileToPicId(f); if(id)ED.pics.push(id) }
-  drawPics(); toast('加好了 ✨');
+  if(!ED.picz)ED.picz={};
+  for(const f of fs){ const id=await fileToPicId(f); if(id){ ED.pics.push(id); if(ADDZONE)ED.picz[id]=ADDZONE } }
+  drawPics(); saveDraft(); toast(ADDZONE?`加进「${ZN(ADDZONE)}」了 ✨`:'加好了 ✨');
 });
 
 function pullForm(){
@@ -974,7 +1037,7 @@ async function eatBackup(txt){
     try{ const b=await (await fetch(dataURL)).blob(); await picPut(id,b); PICURL[id]=URL.createObjectURL(b) }catch{}
   }
   stays=d.stays;
-  stays.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[]; if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''} });
+  stays.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[]; if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''}; if(!s.picz)s.picz={} });
   persist(); render(); toast('恢复好了 🎉');
   return true;
 }
@@ -1061,7 +1124,7 @@ async function eatFromURL(){
     try{ const b=await (await fetch(dataURL)).blob(); await picPut(id,b); PICURL[id]=URL.createObjectURL(b) }catch{}
   }
   fresh.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[];
-                     if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''} });
+                     if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''}; if(!s.picz)s.picz={} });
   stays=stays.concat(fresh);
   persist(); await warmPics();
   toast(`收好了 ${fresh.length} 条 🎉`);
@@ -1069,7 +1132,7 @@ async function eatFromURL(){
 }
 
 /* ── 启动 ── */
-const BUILD='0910-一键搬家';
+const BUILD='0910-照片分区';
 (async()=>{ await warmPics(); render(); await eatFromURL(); render(); })();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
