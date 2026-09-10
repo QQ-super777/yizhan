@@ -692,8 +692,21 @@ const closeOne=el=>{el.classList.remove('on');if(!$$('.sheet.on').length)$('#mas
 const closeAll=()=>{$$('.sheet').forEach(s=>s.classList.remove('on'));$('#mask').classList.remove('on')};
 let _tt;
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),2100)}
-$('#mask').onclick=closeAll;
-$$('[data-close]').forEach(b=>b.onclick=()=>closeOne(b.closest('.sheet')));
+/* 记一条那张表里写了东西还没存 —— 手滑点外面不能就这么没了 */
+function guardEdit(){
+  if(!$('#shEdit').classList.contains('on'))return true;
+  if(!formDirty())return true;
+  if(confirm('这条还没存好。\n\n点「确定」先留成草稿,下次点 ＋ 接着写；\n点「取消」回去接着填。')){
+    saveDraft(); toast('留成草稿了 ✍️'); return true;
+  }
+  return false;
+}
+$('#mask').onclick=()=>{ if(guardEdit())closeAll() };
+$$('[data-close]').forEach(b=>b.onclick=()=>{
+  const sh=b.closest('.sheet');
+  if(sh.id==='shEdit'&&!guardEdit())return;
+  closeOne(sh);
+});
 
 /* ══════════════ 记一条 ══════════════ */
 let ED=null;
@@ -705,7 +718,7 @@ function blankEntry(kind){
 }
 
 function openEdit(entry,isNew){
-  ED=JSON.parse(JSON.stringify(entry));
+  ED=JSON.parse(JSON.stringify(entry)); ISNEW=!!isNew;
   if(!ED.gym)ED.gym={has:'skip',gear:[],hours:'',note:''};
   $('#edTi').textContent=isNew?'记一条':'改一改';
   $('#edDel').classList.toggle('hide',!!isNew);
@@ -807,7 +820,8 @@ $('#edFile').addEventListener('change',async e=>{
   drawPics(); toast('加好了 ✨');
 });
 
-$('#edSave').onclick=()=>{
+function pullForm(){
+  if(!ED)return;
   ED.place=$('#edName').value.trim();
   ED.city=$('#edCity').value.trim();
   ED.at=$('#edAt').value||today();
@@ -815,10 +829,27 @@ $('#edSave').onclick=()=>{
   ED.terminal=$('#edTerm').value.trim(); ED.route=$('#edRoute').value.trim();
   ED.gym.hours=$('#gymHours').value.trim(); ED.gym.note=$('#gymNote').value.trim();
   ED.text=$('#edText').value;
+}
+/* 表单里有没有东西 —— 判断要不要拦一下 */
+function formDirty(){
+  if(!ED)return false;
+  pullForm();
+  return !!(ED.place||ED.city||ED.text.trim()||ED.terminal||ED.route||ED.nights||ED.price||
+            ED.paw||(ED.tags||[]).length||(ED.pics||[]).length||ED.gym.has!=='skip');
+}
+/* 草稿:边写边存,手滑关掉也不丢 */
+const KDR='yz.draft.v1';
+let ISNEW=false;
+const saveDraft=()=>{ if(ED&&ISNEW&&formDirty())sv(KDR,ED); };
+const dropDraft=()=>{ try{localStorage.removeItem(KDR)}catch{} };
+$('#shEdit').addEventListener('input',()=>saveDraft());
+
+$('#edSave').onclick=()=>{
+  pullForm();
   if(!ED.place&&!ED.text.trim()){ toast('好歹写个名字，或者写两句 (´･_･`)'); return }
   const i=stays.findIndex(s=>s.id===ED.id);
   if(i>=0)stays[i]=ED; else stays.push(ED);
-  persist(); closeAll(); render();
+  persist(); dropDraft(); closeAll(); render();
   if(VIEWKEY&&$('#shView'))VIEWKEY='';
   toast('记下了 🐣');
 };
@@ -827,7 +858,7 @@ $('#edDel').onclick=()=>{
   if(!confirm('删掉这一条？照片也会一起没'))return;
   (ED.pics||[]).forEach(id=>picDel(id));
   stays=stays.filter(s=>s.id!==ED.id);
-  persist(); closeAll(); render(); toast('删掉了');
+  persist(); dropDraft(); closeAll(); render(); toast('删掉了');
 };
 
 /* ── 全局点击 ── */
@@ -849,7 +880,11 @@ document.addEventListener('click',e=>{
     const b=blankEntry(kd); b.place=nm; b.city=ci; closeOne($('#shView')); setTimeout(()=>openEdit(b,true),260); return }
 });
 
-$('#fab').onclick=()=>openEdit(blankEntry(TAB==='airport'?'airport':'hotel'),true);
+$('#fab').onclick=()=>{
+  const dr=ld(KDR,null);
+  if(dr&&dr.id){ openEdit(dr,true); toast('接着上次没写完的 ✍️'); return }
+  openEdit(blankEntry(TAB==='airport'?'airport':'hotel'),true);
+};
 
 $('#btnSearch').onclick=()=>{
   const b=$('#srchBox'); b.classList.toggle('hide');
@@ -905,7 +940,7 @@ document.addEventListener('change',e=>{
 });
 
 /* ── 启动 ── */
-const BUILD='0909';
+const BUILD='0910-草稿保护';
 (async()=>{ await warmPics(); render(); })();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
