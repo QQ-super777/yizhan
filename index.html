@@ -373,6 +373,12 @@ nav b.on i{filter:none}
   <div class="sbody" id="picBody" style="padding-bottom:40px"></div>
 </div>
 
+<!-- 一键搬家说明 -->
+<div class="sheet" id="shGo">
+  <div class="shead"><button data-close>知道了</button><div class="ti">🚚 搬到 Safari</div><button style="min-width:46px"></button></div>
+  <div class="sbody" id="goBody"></div>
+</div>
+
 <!-- 粘贴备份 -->
 <div class="sheet" id="shPaste">
   <div class="shead">
@@ -630,12 +636,13 @@ function renderBag(){
   ${isWX()?`<div class="wxwarn">
     <b>⚠️ 你现在是在微信里打开的</b><br>
     微信自带的浏览器有它自己的一个存储盒子，跟 Safari 是<b>两套</b>，互相看不见。<br>
-    这里记的东西只有在微信里打开才找得到。想搬到 Safari：点下面的
-    <b>「📋 复制备份文字」</b>，再去 Safari 打开同一个网址，点<b>「📥 粘贴备份恢复」</b>。
+    这里记的东西只有在微信里打开才找得到。<br>
+    想搬到 Safari：点下面粉色那个 <b>「🚚 一键搬到 Safari」</b>，跟着提示走就行 🌸
   </div>`:''}
   <button class="bigbtn" id="bExport">📦 导出一份备份</button>
   <label class="bigbtn" for="bFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
   <input type="file" id="bFile" accept=".json,application/json" class="hide">
+  ${isWX()?`<button class="bigbtn pink" id="bGo">🚚 一键搬到 Safari</button>`:''}
   <button class="bigbtn" id="bCopy">📋 复制备份文字（能粘去别的浏览器）</button>
   <button class="bigbtn" id="bPaste">📥 粘贴备份恢复</button>
   <div style="text-align:center;font-size:11.5px;color:var(--ink3);padding:6px 0 2px;line-height:1.8">
@@ -941,9 +948,13 @@ document.addEventListener('click',async e=>{
     stays=[]; sv(K,[]); render(); toast('清空了');
   }
 });
-/* 打包成一段文字 —— 导出文件和复制到剪贴板共用 */
-async function packAll(){
-  const picIds=[...new Set(stays.flatMap(s=>s.pics||[]))];
+/* URL 里带数据要用 UTF-8 安全的 base64 */
+const b64en=s=>btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64de=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)));
+
+/* 打包成一段文字 —— 导出文件、复制、一键搬家共用 */
+async function packAll(withPics=true){
+  const picIds=withPics?[...new Set(stays.flatMap(s=>s.pics||[]))]:[];
   const picsOut={};
   for(const id of picIds){
     try{ const b=await picGetRaw(id); if(!b)continue;
@@ -987,6 +998,33 @@ document.addEventListener('click',async e=>{
     else{ $('#pasteBox').value=txt; open1($('#shPaste')); toast('自动复制失败，手动全选复制这段字'); }
   }
   if(e.target.closest('#bPaste')){ $('#pasteBox').value=''; open1($('#shPaste')); }
+  if(e.target.closest('#bGo')){
+    if(!stays.length){toast('还没东西可以搬 (´･_･`)');return}
+    toast('打包中…🚚');
+    let txt=await packAll(true), b=b64en(txt), withPics=true;
+    if(b.length>45000){ txt=await packAll(false); b=b64en(txt); withPics=false; }   /* URL 塞不下照片 */
+    if(b.length>45000){ toast('东西太多了，塞不进网址。用下面的复制粘贴那条路 🙏'); return }
+    history.replaceState(null,'',location.pathname+'#i='+b);
+    $('#goBody').innerHTML=`
+      <div style="font-size:15px;line-height:2;padding:4px 2px 14px">
+        数据已经挂在网址上了 ✅${withPics?'（照片也带上了）':'<br><span style="color:#c98">照片太大没带上，先把文字搬过去</span>'}
+        <div style="height:14px"></div>
+        <b style="font-size:17px">接下来只有两下：</b>
+        <div style="height:10px"></div>
+        <div style="background:#fff;border-radius:20px;padding:14px 16px;box-shadow:var(--sh);margin-bottom:10px">
+          <b>1.</b> 点这个页面<b>右上角的「⋯」</b>
+        </div>
+        <div style="background:#fff;border-radius:20px;padding:14px 16px;box-shadow:var(--sh)">
+          <b>2.</b> 选<b>「在Safari中打开」</b>（安卓是「在浏览器打开」）
+        </div>
+        <div style="height:14px"></div>
+        Safari 一打开就会自己问你要不要把记录收进来，点「确定」就完事了 🎉
+        <div style="height:10px"></div>
+        <span style="font-size:12.5px;color:var(--ink2)">收进去之后建议在 Safari 里
+        分享 → 添加到主屏幕，以后就只点那个图标 🏠</span>
+      </div>`;
+    open1($('#shGo'));
+  }
 });
 
 $('#pasteGo').onclick=async()=>{
@@ -1007,9 +1045,32 @@ document.addEventListener('change',e=>{
   r.readAsText(f);
 });
 
+/* ── 网址里带了数据就收进来（合并，不覆盖） ── */
+async function eatFromURL(){
+  const m=(location.hash||'').match(/^#i=(.+)$/);
+  if(!m)return false;
+  history.replaceState(null,'',location.pathname);     /* 先把网址擦干净,免得刷新重复问 */
+  let d;
+  try{ d=JSON.parse(b64de(m[1])) }catch{ toast('网址里那段数据坏了 😅'); return false }
+  if(!Array.isArray(d.stays)||!d.stays.length)return false;
+  const have=new Set(stays.map(s=>s.id));
+  const fresh=d.stays.filter(s=>s&&s.id&&!have.has(s.id));
+  if(!fresh.length){ toast('这些记录这边已经有了 ✅'); return false }
+  if(!confirm(`从微信那边搬来了 ${fresh.length} 条记录。\n\n收进来吗？（现有的 ${stays.length} 条不会动）`))return false;
+  for(const [id,dataURL] of Object.entries(d.pics||{})){
+    try{ const b=await (await fetch(dataURL)).blob(); await picPut(id,b); PICURL[id]=URL.createObjectURL(b) }catch{}
+  }
+  fresh.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[];
+                     if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''} });
+  stays=stays.concat(fresh);
+  persist(); await warmPics();
+  toast(`收好了 ${fresh.length} 条 🎉`);
+  return true;
+}
+
 /* ── 启动 ── */
-const BUILD='0910-搬家通道';
-(async()=>{ await warmPics(); render(); })();
+const BUILD='0910-一键搬家';
+(async()=>{ await warmPics(); render(); await eatFromURL(); render(); })();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
