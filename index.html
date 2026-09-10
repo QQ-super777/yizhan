@@ -241,6 +241,11 @@ nav b.on i{filter:none}
 .rank .rn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .rank .rv{color:var(--ink2);font-size:12.5px;flex:0 0 auto}
 .rank .ri{width:34px;height:34px;border-radius:12px;background-size:cover;background-position:center;background-color:var(--lotus);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:16px}
+.wxwarn{
+  background:#fff4d9;border-radius:22px;padding:13px 16px;margin-bottom:13px;
+  box-shadow:0 4px 14px rgba(220,170,90,.22);font-size:13px;line-height:1.75;color:#8a6a3a;
+}
+.wxwarn b{color:#7a5620}
 .toast{
   position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 108px);transform:translateX(-50%) translateY(14px);
   background:rgba(106,76,86,.94);color:#fff;padding:11px 20px;border-radius:22px;font-size:13.5px;font-weight:600;
@@ -368,6 +373,21 @@ nav b.on i{filter:none}
   <div class="sbody" id="picBody" style="padding-bottom:40px"></div>
 </div>
 
+<!-- 粘贴备份 -->
+<div class="sheet" id="shPaste">
+  <div class="shead">
+    <button data-close>取消</button>
+    <div class="ti">粘贴备份恢复</div>
+    <button class="pri" id="pasteGo">恢复</button>
+  </div>
+  <div class="sbody">
+    <div style="font-size:13px;color:var(--ink2);line-height:1.8;margin-bottom:12px">
+      在另一个浏览器里点「📋 复制备份文字」，然后长按下面的框粘贴进来 🌸
+    </div>
+    <div class="f"><textarea id="pasteBox" style="min-height:200px;font-size:12px" placeholder="在这里长按 → 粘贴"></textarea></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -380,6 +400,8 @@ const uid=()=>'y'+Math.random().toString(36).slice(2,9);
 const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const paw=n=>n?'🐾'.repeat(n):'';
+/* 微信内置浏览器 —— 它的 localStorage 跟 Safari 不是同一个盒子 */
+const isWX=()=>/MicroMessenger/i.test(navigator.userAgent||'');
 
 /* 第一次打开就是空的 —— 不塞示范数据 */
 let stays=ld(K,null);
@@ -605,9 +627,17 @@ function renderBag(){
      <div class="rn">${esc(p.name)}</div><div class="rv">${p.n} 次</div></div>`).join('')}</div>`:''}
   ${cities.length?`<div class="blk"><div class="bl">🗺️ 去过的城市</div><div class="chips">${cities.map(c=>`<span>${esc(c)}</span>`).join('')}</div></div>`:''}
   <div style="height:8px"></div>
+  ${isWX()?`<div class="wxwarn">
+    <b>⚠️ 你现在是在微信里打开的</b><br>
+    微信自带的浏览器有它自己的一个存储盒子，跟 Safari 是<b>两套</b>，互相看不见。<br>
+    这里记的东西只有在微信里打开才找得到。想搬到 Safari：点下面的
+    <b>「📋 复制备份文字」</b>，再去 Safari 打开同一个网址，点<b>「📥 粘贴备份恢复」</b>。
+  </div>`:''}
   <button class="bigbtn" id="bExport">📦 导出一份备份</button>
   <label class="bigbtn" for="bFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
   <input type="file" id="bFile" accept=".json,application/json" class="hide">
+  <button class="bigbtn" id="bCopy">📋 复制备份文字（能粘去别的浏览器）</button>
+  <button class="bigbtn" id="bPaste">📥 粘贴备份恢复</button>
   <div style="text-align:center;font-size:11.5px;color:var(--ink3);padding:6px 0 2px;line-height:1.8">
     数据只存在这台手机的浏览器里，换地址就不跟着走了<br>
     文字占用 ${usedKB()} KB · 照片另存在相册库里<br>
@@ -898,14 +928,7 @@ $('#q').addEventListener('input',e=>{ clearTimeout(_qt); _qt=setTimeout(()=>{Q=e
 document.addEventListener('click',async e=>{
   if(e.target.closest('#bExport')){
     toast('打包中，照片多的话要等几秒…📦');
-    const picIds=[...new Set(stays.flatMap(s=>s.pics||[]))];
-    const picsOut={};
-    for(const id of picIds){
-      try{ const b=await picGetRaw(id); if(!b)continue;
-        picsOut[id]=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)});
-      }catch{}
-    }
-    const blob=new Blob([JSON.stringify({app:'yizhan',v:1,at:new Date().toISOString(),stays,pics:picsOut})],{type:'application/json'});
+    const blob=new Blob([await packAll()],{type:'application/json'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download='美少兔驿站-备份-'+today()+'.json';
@@ -918,29 +941,74 @@ document.addEventListener('click',async e=>{
     stays=[]; sv(K,[]); render(); toast('清空了');
   }
 });
+/* 打包成一段文字 —— 导出文件和复制到剪贴板共用 */
+async function packAll(){
+  const picIds=[...new Set(stays.flatMap(s=>s.pics||[]))];
+  const picsOut={};
+  for(const id of picIds){
+    try{ const b=await picGetRaw(id); if(!b)continue;
+      picsOut[id]=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)});
+    }catch{}
+  }
+  return JSON.stringify({app:'yizhan',v:1,stays,pics:picsOut});
+}
+
+/* 真正把数据吃进来 —— 文件恢复和粘贴恢复共用 */
+async function eatBackup(txt){
+  const d=JSON.parse(txt);
+  if(!Array.isArray(d.stays))throw new Error('不是驿站的备份');
+  if(!confirm(`这份备份里有 ${d.stays.length} 条记录，导入会覆盖现在的 ${stays.length} 条。继续？`))return false;
+  toast('恢复中…');
+  for(const [id,dataURL] of Object.entries(d.pics||{})){
+    try{ const b=await (await fetch(dataURL)).blob(); await picPut(id,b); PICURL[id]=URL.createObjectURL(b) }catch{}
+  }
+  stays=d.stays;
+  stays.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[]; if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''} });
+  persist(); render(); toast('恢复好了 🎉');
+  return true;
+}
+
+document.addEventListener('click',async e=>{
+  if(e.target.closest('#bCopy')){
+    if(!stays.length){toast('还没东西可以复制 (´･_･`)');return}
+    toast('打包中…📋');
+    const txt=await packAll();
+    let ok=false;
+    try{ await navigator.clipboard.writeText(txt); ok=true }catch{}
+    if(!ok){                       /* 微信里 clipboard API 常被拦,退回老办法 */
+      const ta=document.createElement('textarea');
+      ta.value=txt; ta.style.cssText='position:fixed;top:-9999px';
+      document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,txt.length);
+      try{ ok=document.execCommand('copy') }catch{}
+      ta.remove();
+    }
+    const kb=Math.round(txt.length/1024);
+    if(ok)toast(`复制好了（${kb} KB）✨ 去另一个浏览器粘贴`);
+    else{ $('#pasteBox').value=txt; open1($('#shPaste')); toast('自动复制失败，手动全选复制这段字'); }
+  }
+  if(e.target.closest('#bPaste')){ $('#pasteBox').value=''; open1($('#shPaste')); }
+});
+
+$('#pasteGo').onclick=async()=>{
+  const t=$('#pasteBox').value.trim();
+  if(!t){toast('先把备份粘进来 🌸');return}
+  try{ if(await eatBackup(t))closeAll() }
+  catch{ toast('这段字读不了，是不是没复制全？😅') }
+};
+
 document.addEventListener('change',e=>{
   if(e.target.id!=='bFile')return;
   const f=e.target.files[0]; e.target.value=''; if(!f)return;
   const r=new FileReader();
   r.onload=async()=>{
-    try{
-      const d=JSON.parse(r.result);
-      if(!Array.isArray(d.stays))throw 0;
-      if(!confirm(`这份备份里有 ${d.stays.length} 条记录，导入会覆盖现在的。继续？`))return;
-      toast('恢复中…');
-      for(const [id,dataURL] of Object.entries(d.pics||{})){
-        try{ const b=await (await fetch(dataURL)).blob(); await picPut(id,b); PICURL[id]=URL.createObjectURL(b) }catch{}
-      }
-      stays=d.stays;
-      stays.forEach(s=>{ if(!Array.isArray(s.pics))s.pics=[]; if(!Array.isArray(s.tags))s.tags=[]; if(!s.gym)s.gym={has:'skip',gear:[],hours:'',note:''} });
-      persist(); render(); toast('恢复好了 🎉');
-    }catch{ toast('这个文件读不了，换一份试试 😅') }
+    try{ await eatBackup(r.result) }
+    catch{ toast('这个文件读不了，换一份试试 😅') }
   };
   r.readAsText(f);
 });
 
 /* ── 启动 ── */
-const BUILD='0910-草稿保护';
+const BUILD='0910-搬家通道';
 (async()=>{ await warmPics(); render(); })();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
