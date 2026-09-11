@@ -140,6 +140,7 @@ main{padding:8px 16px 0;max-width:660px;margin:0 auto}
 .zcap{font-size:11px;font-weight:700;color:var(--ink3);margin-top:9px;padding-left:2px}
 .flow .fchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .flow .fchips span{background:#fff6f9;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;color:var(--ink2)}
+.flow .fchips span.bad,.chips span.bad{background:#fdefdc;color:#a8763c}
 .flow.a .fchips span{background:#eef7f6}
 .flow .fpaw{font-size:12px;letter-spacing:-1.5px;margin-top:5px}
 
@@ -201,7 +202,12 @@ nav b.on i{filter:none}
 .pawpick button{font-size:26px;line-height:1;filter:grayscale(1) opacity(.25);transition:all .14s}
 .pawpick button.on{filter:none;transform:scale(1.1)}
 .pawpick .z{font-size:12px;color:var(--ink3);margin-left:6px;font-weight:600}
+.tgrp{margin-bottom:12px}
+.tgl{font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:7px;padding-left:4px}
+.tgrp.bad .tgl{color:#c98a4a}
 .tagpick{display:flex;flex-wrap:wrap;gap:7px}
+.tagpick .mk{background:#fff;color:var(--ink3);box-shadow:0 2px 7px rgba(255,150,180,.13);border:1.5px dashed #f0d3de}
+.tagpick.bad button.on{background:#f0a860;box-shadow:0 3px 10px rgba(215,145,70,.34)}
 .tagpick button{padding:7px 13px;border-radius:20px;background:#fff;font-size:12.5px;font-weight:600;color:var(--ink2);box-shadow:0 2px 7px rgba(255,150,180,.13)}
 .tagpick button.on{background:var(--hot);color:#fff;box-shadow:0 3px 10px rgba(255,140,175,.34)}
 .tagpick.sea button.on{background:var(--sea);box-shadow:0 3px 10px rgba(95,176,169,.34)}
@@ -234,6 +240,7 @@ nav b.on i{filter:none}
 .blk .bl{font-size:12px;color:var(--ink2);font-weight:700;margin-bottom:6px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips span{background:#fff6f9;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600}
+.chips span.bad{background:#fdefdc;color:#a8763c}
 .chips.sea span{background:#eef7f6}
 .bigbtn{width:100%;padding:15px;border-radius:22px;font-size:15px;font-weight:700;margin-bottom:11px;background:#fff;box-shadow:var(--sh);transition:transform .14s}
 .bigbtn.pink{background:linear-gradient(160deg,#ffadc4,#ff8bab);color:#fff;box-shadow:0 6px 18px rgba(255,130,170,.42)}
@@ -364,7 +371,7 @@ nav b.on i{filter:none}
   <div class="shead">
     <button data-close>关闭</button>
     <div class="ti" id="vwTi">档案</div>
-    <button class="pri" id="vwAdd">＋记一条</button>
+    <button style="min-width:46px"></button>
   </div>
   <div class="sbody" id="vwBody"></div>
 </div>
@@ -482,8 +489,35 @@ function fileToPicId(file){
 }
 
 /* ══════════════ 词表 ══════════════ */
-const HOTEL_TAGS=['🤫 安静','🔊 隔音差','🛏️ 床舒服','🚿 水压好','🍳 早餐好','📍 位置好','🚇 离地铁近','💰 性价比高','🧼 干净','🐛 不干净','🌇 view 好','🔌 插座够','⚠️ 避雷'];
-const AIR_TAGS=['🛋️ 休息室好','😴 能睡','🍜 吃的多','🛍️ 免税好','🔄 转机顺','🐌 安检慢','🚇 到市区方便','🔌 充电方便','⏰ 延误了','🧭 好找路','😵 太大了走断腿'];
+/* 标签分两组 —— 好的坏的混在一起看不出条理 */
+const TAGSETS={
+  hotel:[
+    {k:'good',n:'💗 好在哪',t:['🤫 安静','🛏️ 床舒服','🚿 水压好','🍳 早餐好','📍 位置好','🚇 离地铁近','💰 性价比高','🧼 干净','🌇 view 好','🔌 插座够','🛁 浴缸','☕ 咖啡机']},
+    {k:'bad', n:'⚠️ 避雷点',t:['🔊 隔音差','🐛 不干净','🚿 水压小','🛵 外卖不能送上楼','🅿️ 停车难','📶 wifi 差','🪟 没窗','📦 房间小','🚕 位置偏','💸 房价虚高','🛏️ 床太硬','🌡️ 空调不行']},
+  ],
+  airport:[
+    {k:'good',n:'💗 好在哪',t:['🛋️ 休息室好','😴 能睡','🍜 吃的多','🛍️ 免税好','🔄 转机顺','🚇 到市区方便','🔌 充电方便','🧭 好找路']},
+    {k:'bad', n:'⚠️ 避雷点',t:['🐌 安检慢','⏰ 延误了','😵 太大了走断腿','🍚 没吃的','🚕 离市区远','🧩 指示乱','🪑 没地方坐']},
+  ],
+};
+/* 她自己加的标签,按好/坏分开存 */
+if(!stg.mytags||typeof stg.mytags!=='object')stg.mytags={};
+const myTags=(kind,k)=>((stg.mytags[kind]||{})[k]||[]);
+function addMyTag(kind,k,txt){
+  if(!stg.mytags[kind])stg.mytags[kind]={};
+  if(!stg.mytags[kind][k])stg.mytags[kind][k]=[];
+  if(!stg.mytags[kind][k].includes(txt))stg.mytags[kind][k].push(txt);
+  sv(KS,stg);
+}
+const groupsOf=kind=>TAGSETS[kind].map(g=>({...g,t:[...g.t,...myTags(kind,g.k)]}));
+/* 一个标签是不是避雷 —— 显示时要标红 */
+function isBad(t){
+  for(const kind of ['hotel','airport']){
+    const g=TAGSETS[kind].find(x=>x.k==='bad');
+    if(g.t.includes(t)||myTags(kind,'bad').includes(t))return true;
+  }
+  return t==='⚠️ 避雷';
+}
 /* 照片分区 —— 目前三档,酒店专用;机场的照片不分区 */
 const ZONES=[{k:'room',n:'🛏️ 房间'},{k:'lobby',n:'🛋️ 大堂'},{k:'gym',n:'💪 健身房'}];
 const ZN=k=>(ZONES.find(z=>z.k===k)||{n:'📷 其他'}).n;
@@ -561,6 +595,16 @@ function renderFlow(){
 }
 
 /* 照片按分区摊开,每组一个小标签;没分区的就一排 */
+/* 好的一行、避雷一行,不混在一起 */
+function chipRows(tags){
+  const a=tags||[]; if(!a.length)return '';
+  const bad=a.filter(isBad), good=a.filter(t=>!isBad(t));
+  let out='';
+  if(good.length)out+=`<div class="fchips">${good.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`;
+  if(bad.length)out+=`<div class="fchips">${bad.map(t=>`<span class="bad">${esc(t)}</span>`).join('')}</div>`;
+  return out;
+}
+
 function picBlocks(s){
   const row=ids=>`<div class="fpics">${ids.map(i=>`<i style="background-image:url('${purl(i)}')" data-pic="${i}"></i>`).join('')}</div>`;
   const rest=picsUnzoned(s).filter(purl);
@@ -587,7 +631,7 @@ function flowCard(s){
     ${meta.length?`<div class="fm">${meta.join(' · ')}</div>`:''}
     ${s.text?`<div class="ft">${esc(s.text)}</div>`:''}
     ${picBlocks(s)}
-    ${(s.tags||[]).length?`<div class="fchips">${s.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
+    ${chipRows(s.tags)}
     ${s.paw?`<div class="fpaw">${paw(s.paw)}</div>`:''}
   </div>`;
 }
@@ -734,7 +778,9 @@ function openPlace(key){
     ${gymNote.length?`<div style="font-size:13.5px">${esc([...new Set(gymNote)].join('；'))}</div>`:''}
   </div>`:''}
   ${!air&&!p.gym&&p.nogym?`<div class="blk"><div class="bl">💪 健身房</div><div style="font-size:14px;color:var(--ink2)">没有</div></div>`:''}
-  ${p.tags.length?`<div class="blk"><div class="bl">🔖 你标过的</div><div class="chips ${air?'sea':''}">${p.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div></div>`:''}
+  ${(()=>{const bad=p.tags.filter(isBad),good=p.tags.filter(t=>!isBad(t));
+    return (good.length?`<div class="blk"><div class="bl">💗 好在哪</div><div class="chips ${air?'sea':''}">${good.map(t=>`<span>${esc(t)}</span>`).join('')}</div></div>`:'')
+         + (bad.length?`<div class="blk" style="background:#fff8ef"><div class="bl" style="color:#c98a4a">⚠️ 避雷点</div><div class="chips">${bad.map(t=>`<span class="bad">${esc(t)}</span>`).join('')}</div></div>`:'');})()}
   ${album(p)}
   <div class="sect"><span class="t">📖 每次的流水</span><span class="n">${p.n} 条</span></div>
   ${p.items.map(s=>`<div class="dayhd"><span class="d1">${dfull(s.at)}</span><span class="d2">${wd(s.at)}</span></div>${flowCard(s)}`).join('')}
@@ -835,9 +881,22 @@ function drawPaw(){
   $('#edPawZ').textContent=['还没打','算了吧','一般','还行','挺好','超爱'][ED.paw||0];
 }
 function drawTags(){
-  const list=ED.kind==='airport'?AIR_TAGS:HOTEL_TAGS;
-  const box=$('#edTags'); box.classList.toggle('sea',ED.kind==='airport');
-  box.innerHTML=list.map(t=>`<button data-t="${esc(t)}" class="${(ED.tags||[]).includes(t)?'on':''}">${esc(t)}</button>`).join('');
+  const box=$('#edTags');
+  const gs=groupsOf(ED.kind);
+  const known=new Set(gs.flatMap(g=>g.t));
+  let html=gs.map(g=>`
+    <div class="tgrp ${g.k}">
+      <div class="tgl">${g.n}</div>
+      <div class="tagpick ${g.k}">
+        ${g.t.map(t=>`<button data-t="${esc(t)}" class="${(ED.tags||[]).includes(t)?'on':''}">${esc(t)}</button>`).join('')}
+        <button class="mk" data-newtag="${g.k}">＋ 自己加</button>
+      </div>
+    </div>`).join('');
+  /* 以前记的、现在词表里没有的,照样显示出来,不然她想去掉都点不着 */
+  const orphan=(ED.tags||[]).filter(t=>!known.has(t));
+  if(orphan.length)html+=`<div class="tgrp"><div class="tgl">🏷️ 以前记的</div>
+    <div class="tagpick">${orphan.map(t=>`<button data-t="${esc(t)}" class="on">${esc(t)}</button>`).join('')}</div></div>`;
+  box.innerHTML=html;
 }
 function drawGym(){
   $$('#gymHas button').forEach(b=>b.classList.toggle('on',b.dataset.g===ED.gym.has));
@@ -898,8 +957,15 @@ $('#shEdit').addEventListener('click',async e=>{
   if(seg){ ED.kind=seg.dataset.k; ED.tags=[]; syncKind(); drawTags(); drawPics(); return }
   const pb=e.target.closest('#edPaw button');
   if(pb){ const v=+pb.dataset.p; ED.paw=(ED.paw===v)?0:v; drawPaw(); return }
+  const nt=e.target.closest('[data-newtag]');
+  if(nt){
+    const k=nt.dataset.newtag;
+    const txt=(prompt(k==='bad'?'加一个避雷点（比如：外卖不能送上楼）':'加一个优点（比如：枕头好睡）')||'').trim();
+    if(txt){ addMyTag(ED.kind,k,txt); ED.tags=[...(ED.tags||[]),txt]; drawTags(); saveDraft(); toast('加好了，以后都能选 🏷️') }
+    return;
+  }
   const tb=e.target.closest('#edTags button');
-  if(tb){ const t=tb.dataset.t; ED.tags=(ED.tags||[]).includes(t)?ED.tags.filter(x=>x!==t):[...(ED.tags||[]),t]; drawTags(); return }
+  if(tb&&tb.dataset.t){ const t=tb.dataset.t; ED.tags=(ED.tags||[]).includes(t)?ED.tags.filter(x=>x!==t):[...(ED.tags||[]),t]; drawTags(); saveDraft(); return }
   const gh=e.target.closest('#gymHas button');
   if(gh){ ED.gym.has=gh.dataset.g; drawGym(); return }
   const gg=e.target.closest('#gymGear button');
@@ -1132,7 +1198,7 @@ async function eatFromURL(){
 }
 
 /* ── 启动 ── */
-const BUILD='0910-照片分区';
+const BUILD='0911-标签分组';
 (async()=>{ await warmPics(); render(); await eatFromURL(); render(); })();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
